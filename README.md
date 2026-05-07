@@ -28,6 +28,14 @@ A portable wiki that works with **Claude Code** and **OpenCode**. Write markdown
 - **Zero Dependencies** — Static HTML/JS, works with `file://` protocol, offline
 - **Works Everywhere** — Plug USB into any PC, run install skill, done
 
+## Dashboard
+
+<p align="center">
+  <img src="docs/dashboard.webp" alt="Dashboard — 3D Knowledge Graph with sidebar navigation" width="700">
+</p>
+
+Interactive 3D force-directed graph with color-coded categories (sources, entities, concepts, comparisons). Click any node to read the page. Sidebar with search and category navigation.
+
 ## Quick Start
 
 ### 1. Install commands
@@ -44,13 +52,22 @@ Or manually copy files from `commands/` to `~/.claude/commands/`.
 
 ### 2. Install on USB
 
-Open **Claude Code** and run:
+Open **Claude Code** or **OpenCode** and run:
 
 ```
 /install-portable-wiki
 ```
 
 Follow the prompts — point to your USB drive, choose new or import existing wiki.
+
+<details>
+<summary>OpenCode with commands</summary>
+
+<p align="center">
+  <img src="docs/opencode-commands.webp" alt="OpenCode with LLM Wiki Portable commands" width="600">
+</p>
+
+</details>
 
 ### 3. Use it
 
