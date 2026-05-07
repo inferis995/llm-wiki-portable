@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+System Volume Information/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Keep empty dirs
+!.gitkeep
