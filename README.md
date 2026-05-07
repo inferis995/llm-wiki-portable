@@ -4,6 +4,16 @@
   <img src="screenshot.webp" alt="LLM Wiki Portable — 3D Knowledge Graph" width="700">
 </p>
 
+<p align="center">
+  <a href="https://github.com/inferis995/llm-wiki-portable/stargazers"><img src="https://img.shields.io/github/stars/inferis995/llm-wiki-portable?style=social" alt="Stars"></a>
+  <a href="https://github.com/inferis995/llm-wiki-portable/blob/master/LICENSE"><img src="https://img.shields.io/github/license/inferis995/llm-wiki-portable?color=blue" alt="License"></a>
+  <img src="https://img.shields.io/github/last-commit/inferis995/llm-wiki-portable?color=orange" alt="Last Commit">
+  <img src="https://img.shields.io/github/repo-size/inferis995/llm-wiki-portable?color=green" alt="Repo Size">
+  <img src="https://img.shields.io/badge/python-3.8+-blue?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/platform-USB%20%7C%20Local-blueviolet" alt="Platform">
+  <img src="https://img.shields.io/badge/works%20offline-yes-success" alt="Offline">
+</p>
+
 Your personal AI-powered knowledge base on a USB stick.
 
 A portable wiki that works with **Claude Code** and **OpenCode**. Write markdown pages with `[[wikilinks]]`, see them as an interactive 3D graph, and carry it all on a USB drive. No server, no install, no cloud.
