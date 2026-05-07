@@ -1,5 +1,9 @@
 # LLM Wiki Portable
 
+<p align="center">
+  <img src="screenshot.webp" alt="LLM Wiki Portable — 3D Knowledge Graph" width="700">
+</p>
+
 Your personal AI-powered knowledge base on a USB stick.
 
 A portable wiki that works with **Claude Code** and **OpenCode**. Write markdown pages with `[[wikilinks]]`, see them as an interactive 3D graph, and carry it all on a USB drive. No server, no install, no cloud.
