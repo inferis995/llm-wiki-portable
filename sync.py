@@ -14,7 +14,7 @@ import argparse
 WIKILINK_RE = re.compile(r'\[\[([^\]|]+)(?:\|([^\]]+))?\]\]')
 FRONTMATTER_RE = re.compile(r'^---\s*\n(.*?)\n---\s*\n', re.DOTALL)
 
-CATEGORY_ORDER = ["sources", "entities", "concepts", "comparisons", "clippings"]
+CATEGORY_ORDER = ["sources", "entities", "concepts", "comparisons"]
 
 
 def parse_frontmatter(text):

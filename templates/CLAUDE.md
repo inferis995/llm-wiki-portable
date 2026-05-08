@@ -16,6 +16,7 @@ Sei il maintainer di una knowledge base personale su drive portable.
 │   ├── concepts/*.md         ← Idee, pattern, protocolli
 │   ├── comparisons/*.md      ← Confronti A vs B
 │   ├── index.md              ← Catalogo di tutte le pagine
+
 │   └── log.md                ← Changelog append-only
 ├── raw/                      ← File originali (non modificare mai)
 │   └── assets/               ← Immagini e media

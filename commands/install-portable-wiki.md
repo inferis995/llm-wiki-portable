@@ -491,7 +491,6 @@ Database: `{TARGET}/.rtfm/library.db`
 {TARGET}/wiki/entities/*.md      ← Tool, aziende, persone
 {TARGET}/wiki/concepts/*.md      ← Idee, pattern, protocolli
 {TARGET}/wiki/comparisons/*.md   ← Confronti
-{TARGET}/wiki/clippings/*.md     ← Clippings e note veloci
 {TARGET}/raw/                    ← File originali (non modificare)
 {TARGET}/.rtfm/library.db        ← DB ricerca semantica
 ```

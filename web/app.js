@@ -10,7 +10,6 @@
     entities:    "#22c55e",
     concepts:    "#f59e0b",
     comparisons: "#a855f7",
-    clippings:   "#ec4899",
     root:        "#6b7280",
   };
   const CATEGORY_LABELS = {
@@ -18,7 +17,6 @@
     entities:    "Entità",
     concepts:    "Concetti",
     comparisons: "Confronti",
-    clippings:   "Clippings",
     root:        "Root",
   };
   const CATEGORY_ORDER = [
@@ -26,7 +24,6 @@
     "entities",
     "concepts",
     "comparisons",
-    "clippings",
   ];
 
   // ── State ──────────────────────────────────────────────────
