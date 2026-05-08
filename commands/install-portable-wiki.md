@@ -432,6 +432,11 @@ Scrivi anche una copia in `{TARGET}/CLAUDE.md` come backup sull'USB.
 
 Crea la directory `~/.config/opencode/agents/` se non esiste.
 
+Leggi il template da `{TEMPLATE_SRC}/templates/AGENTS.md`.
+Sostituisci **tutte** le occorrenze di `{wiki-root}` con `{TARGET}` (forward slash).
+
+Scrivi il file con questo formato (sostituisci `{TARGET}` ovunque):
+
 ```markdown
 ---
 description: LLM Wiki Portable — knowledge base su {TARGET} con ricerca semantica
@@ -445,10 +450,66 @@ tools:
 
 # LLM Wiki Portable — {TARGET}
 
-[stesso contenuto di CLAUDE.md ma formattato per OpenCode]
+Sei il maintainer di una knowledge base personale su drive portable.
+
+## Wiki Root
+`{TARGET}` — usa questo path per tutte le operazioni sui file.
+
+## Ricerca Semantica (RTFM MCP)
+
+**Metodo PRIMARIO per TUTTE le query** — usa `rtfm_search` prima di leggere file.
+
+| Tool | Uso |
+|------|-----|
+| `rtfm_search` | Ricerca (corpus: `"wiki"`, search_type: `"hybrid"`) — SEMPRE PRIMA |
+| `rtfm_expand` | Contesto completo intorno a un risultato |
+| `rtfm_sync`   | Re-indicizza dopo ogni salvataggio |
+| `rtfm_stats`  | Controlla stato DB |
+
+Database: `{TARGET}/.rtfm/library.db`
+
+**search_type**: usa sempre `"hybrid"` (FTS + embedding). Default `"fts"` è solo keyword.
+
+## Riferimento Rapido
+
+| Operazione | Cosa fare |
+|-----------|-----------|
+| **Ingest** | Salva fonte → crea pagine → aggiorna index → aggiorna log → sync.py → `rtfm_sync(path="{TARGET}/wiki", corpus="wiki")` |
+| **Query** | `rtfm_search(query="...", corpus="wiki", search_type="hybrid")` → `rtfm_expand` → leggi → [[citazioni]] |
+| **Lint** | Scansiona orfani, link rotti → riporta → correggi |
+| **Sync web** | `python {TARGET}/sync.py --wiki-dir {TARGET}/wiki --output {TARGET}/web/data.json` |
+
+## Struttura
+
+```
+{TARGET}/wiki/sources/src-*.md   ← Riassunti di fonti
+{TARGET}/wiki/entities/*.md      ← Tool, aziende, persone
+{TARGET}/wiki/concepts/*.md      ← Idee, pattern, protocolli
+{TARGET}/wiki/comparisons/*.md   ← Confronti
+{TARGET}/wiki/clippings/*.md     ← Clippings e note veloci
+{TARGET}/raw/                    ← File originali (non modificare)
+{TARGET}/.rtfm/library.db        ← DB ricerca semantica
 ```
 
-Sostituisci `{TARGET}` con il path effettivo.
+## Frontmatter
+
+```yaml
+---
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+sources: [[src-nome-fonte]]
+tags: [tag1, tag2]
+---
+```
+
+## Dopo Ogni Modifica
+
+1. Aggiorna `{TARGET}/wiki/index.md`
+2. Appendi a `{TARGET}/wiki/log.md`
+3. `python {TARGET}/sync.py --wiki-dir {TARGET}/wiki --output {TARGET}/web/data.json`
+4. `rtfm_sync(path="{TARGET}/wiki", corpus="wiki")`
+```
+
 Scrivi anche una copia in `{TARGET}/AGENTS.md`.
 
 ---

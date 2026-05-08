@@ -18,31 +18,57 @@ CATEGORY_ORDER = ["sources", "entities", "concepts", "comparisons", "clippings"]
 
 
 def parse_frontmatter(text):
-    """Parse YAML frontmatter from markdown text. Returns (metadata_dict, content_without_frontmatter)."""
+    """Parse YAML frontmatter from markdown text. Returns (metadata_dict, content_without_frontmatter).
+    Supports both inline lists [a, b] and YAML block lists (- item).
+    """
     m = FRONTMATTER_RE.match(text)
     if not m:
         return {}, text
 
     raw = m.group(1)
     meta = {}
+    current_key = None
+    current_list = None
+
     for line in raw.split('\n'):
-        line = line.strip()
-        if not line or ':' not in line:
+        stripped = line.strip()
+        if not stripped:
             continue
-        key, _, val = line.partition(':')
+
+        # YAML block list item (  - value)
+        if stripped.startswith('- ') and current_list is not None:
+            current_list.append(stripped[2:].strip().strip("'\""))
+            continue
+
+        # New key — reset list accumulator
+        if ':' not in stripped:
+            current_list = None
+            current_key = None
+            continue
+
+        current_list = None
+        current_key = None
+
+        key, _, val = stripped.partition(':')
         key = key.strip()
         val = val.strip()
 
-        # Remove quotes
-        if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+        # Remove surrounding quotes
+        if (val.startswith('"') and val.endswith('"')) or \
+           (val.startswith("'") and val.endswith("'")):
             val = val[1:-1]
 
-        # Parse lists [a, b, c]
+        # Inline list [a, b, c]
         if val.startswith('[') and val.endswith(']'):
             val = [v.strip().strip("'\"") for v in val[1:-1].split(',') if v.strip()]
+        elif val == '' or val == '[]':
+            # Empty value — may be followed by block list items
+            val = []
+            current_key = key
+            current_list = val
         elif val.lower() in ('true', 'false'):
             val = val.lower() == 'true'
-        elif val.lower() == 'null' or val.lower() == 'none':
+        elif val.lower() in ('null', 'none'):
             val = None
 
         meta[key] = val
@@ -51,9 +77,11 @@ def parse_frontmatter(text):
     return meta, content
 
 
-def extract_wikilinks(content):
-    """Extract wikilink targets from markdown content."""
-    return [m.group(1) for m in WIKILINK_RE.finditer(content)]
+def extract_wikilinks(text):
+    """Extract wikilink targets from a string."""
+    if not isinstance(text, str):
+        return []
+    return [m.group(1) for m in WIKILINK_RE.finditer(text)]
 
 
 def get_category(rel_path):
@@ -65,8 +93,9 @@ def get_category(rel_path):
 
 
 def get_slug(rel_path):
-    """Get slug from relative path (strip .md extension)."""
-    return rel_path.replace('\\', '/').removesuffix('.md')
+    """Get slug from relative path (strip .md extension). Python 3.8 compatible."""
+    s = rel_path.replace('\\', '/')
+    return s[:-3] if s.endswith('.md') else s
 
 
 def walk_md_files(directory):
@@ -85,20 +114,30 @@ def resolve_link(link_target, pages_by_slug, pages_by_title):
     """Fuzzy resolve a wikilink target to a page slug."""
     lt = link_target.lower()
 
-    # Exact slug match
     if link_target in pages_by_slug:
         return link_target
 
-    # Slug suffix match
     for slug in pages_by_slug:
         if slug.endswith('/' + link_target):
             return slug
 
-    # Case-insensitive title match
     if lt in pages_by_title:
         return pages_by_title[lt]
 
     return None
+
+
+def collect_frontmatter_links(meta):
+    """Extract wikilinks from frontmatter fields (sources, related, etc.)."""
+    links = []
+    for key in ('sources', 'related'):
+        val = meta.get(key)
+        if isinstance(val, str):
+            links += extract_wikilinks(val)
+        elif isinstance(val, list):
+            for item in val:
+                links += extract_wikilinks(str(item))
+    return links
 
 
 def sync(wiki_dir, output_path):
@@ -117,21 +156,29 @@ def sync(wiki_dir, output_path):
     # Parse all pages
     pages = []
     for full_path, rel_path in md_files:
-        with open(full_path, 'r', encoding='utf-8') as f:
-            text = f.read()
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                text = f.read()
+        except UnicodeDecodeError:
+            with open(full_path, 'r', encoding='latin-1') as f:
+                text = f.read()
 
         meta, content = parse_frontmatter(text)
-        links = extract_wikilinks(content)
+        content_links = extract_wikilinks(content)
+        frontmatter_links = collect_frontmatter_links(meta)
+        all_links = content_links + frontmatter_links
+
         slug = get_slug(rel_path)
         category = get_category(rel_path)
 
         # Title from frontmatter or filename
         title = meta.get('title', '')
         if not title:
-            basename = os.path.basename(rel_path).removesuffix('.md')
+            basename = os.path.basename(rel_path)
+            basename = basename[:-3] if basename.endswith('.md') else basename
             title = basename.replace('-', ' ').replace('_', ' ').title()
 
-        # Ensure tags is a list
+        # Normalize tags to list
         tags = meta.get('tags', [])
         if isinstance(tags, str):
             tags = [t.strip() for t in tags.split(',') if t.strip()]
@@ -143,7 +190,7 @@ def sync(wiki_dir, output_path):
             'category': category,
             'content': content.strip(),
             'frontmatter': meta,
-            'links': links,
+            'links': all_links,
             'backlinks': [],
         })
 
@@ -155,22 +202,25 @@ def sync(wiki_dir, output_path):
     resolved_links = {}
     for page in pages:
         resolved = []
+        seen = set()
         for link_target in page['links']:
             slug = resolve_link(link_target, pages_by_slug, pages_by_title)
-            if slug and slug != page['slug']:
+            if slug and slug != page['slug'] and slug not in seen:
+                seen.add(slug)
                 resolved.append(slug)
-                # Add backlink
                 target_page = pages_by_slug.get(slug)
                 if target_page and page['slug'] not in target_page['backlinks']:
                     target_page['backlinks'].append(page['slug'])
         resolved_links[page['slug']] = resolved
 
-    # Update pages with resolved links
     for page in pages:
         page['links'] = resolved_links.get(page['slug'], [])
 
     # Write output
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    out_dir = os.path.dirname(output_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+
     data = {
         'pages': pages,
         'stats': {
@@ -180,14 +230,12 @@ def sync(wiki_dir, output_path):
         }
     }
 
-    # Generate both data.json (for reference) and data.js (for file:// compatibility)
     json_path = output_path
-    js_path = os.path.join(os.path.dirname(output_path), 'data.js')
+    js_path = os.path.join(os.path.dirname(output_path) or '.', 'data.js')
 
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    # JS file: assigns to global WIKI_DATA so it works with file:// protocol
     js_content = 'var WIKI_DATA = ' + json.dumps(data, ensure_ascii=False) + ';\n'
     with open(js_path, 'w', encoding='utf-8') as f:
         f.write(js_content)
