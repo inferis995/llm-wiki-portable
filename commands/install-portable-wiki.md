@@ -141,85 +141,83 @@ Se dopo tutto ancora fallisce, continua ma avvisa: "Ricerca semantica non dispon
 
 ### 4c. Inizializza e indicizza
 
+**IMPORTANTE**: per i comandi CLI usa sempre il flag `--db` (NON la variabile d'ambiente `RTFM_DB` — quella funziona solo per il server MCP). Salva `DB_PATH = "{TARGET}/.rtfm/library.db"`.
+
+Crea prima la directory: `mkdir -p "{TARGET}/.rtfm"` (Linux/macOS) o `New-Item -ItemType Directory -Force "{TARGET}/.rtfm"` (Windows).
+
 **1. Inizializza il DB:**
 
 Linux/macOS:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" rtfm init
+rtfm init --db "{TARGET}/.rtfm/library.db"
 ```
 Windows (PowerShell):
 ```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm init
+rtfm init --db "{TARGET}/.rtfm/library.db"
 ```
 
 **2. Registra la wiki come fonte:**
 
 Linux/macOS:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" rtfm add "{TARGET}/wiki" --corpus wiki --extensions md
+rtfm add "{TARGET}/wiki" --corpus wiki --extensions md --db "{TARGET}/.rtfm/library.db"
 ```
 Windows (PowerShell):
 ```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm add "{TARGET}/wiki" --corpus wiki --extensions md
+rtfm add "{TARGET}/wiki" --corpus wiki --extensions md --db "{TARGET}/.rtfm/library.db"
 ```
 
 **3. Indicizza i file (FTS):**
 
 Linux/macOS:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" rtfm sync
+rtfm sync --db "{TARGET}/.rtfm/library.db"
 ```
 Windows (PowerShell):
 ```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm sync
+rtfm sync --db "{TARGET}/.rtfm/library.db"
 ```
 
-Riporta il numero di chunk indicizzati.
+Riporta il numero di chunk indicizzati. Se 0 con pagine .md presenti → controlla il path.
 
 **4. Genera gli embedding (ricerca semantica):**
 
-Questo passo è OBBLIGATORIO — senza di esso la ricerca semantica non funziona.
+Questo passo è OBBLIGATORIO — senza di esso la ricerca semantica non funziona mai.
 
 Linux/macOS:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" rtfm embed
+rtfm embed --db "{TARGET}/.rtfm/library.db"
 ```
 Windows (PowerShell):
 ```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm embed
+rtfm embed --db "{TARGET}/.rtfm/library.db"
 ```
 
-Alla prima esecuzione scarica il modello `paraphrase-multilingual-MiniLM-L12-v2` (~90 MB). Attendi il completamento.
+Alla prima esecuzione scarica il modello `paraphrase-multilingual-MiniLM-L12-v2` (~90 MB, ONNX CPU). Attendi il completamento prima di procedere.
 
-Se `rtfm embed` non esiste (versione vecchia): installa la versione più recente con `{PIP_CMD} install -U "rtfm-ai[embeddings]"`.
+Se `rtfm embed` non esiste: `{PIP_CMD} install -U "rtfm-ai[embeddings]"` poi riprova.
 
 ### 4d. Verifica FTS e ricerca semantica
 
 **Test keyword (FTS):**
-
-Linux/macOS:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" rtfm search "wiki"
-```
-Windows (PowerShell):
-```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm search "wiki"
+rtfm search "wiki" --db "{TARGET}/.rtfm/library.db"
 ```
 
 **Test semantico (embedding):**
-
-Linux/macOS:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" rtfm semantic-search "wiki"
-```
-Windows (PowerShell):
-```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm semantic-search "wiki"
+rtfm semantic-search "wiki" --db "{TARGET}/.rtfm/library.db"
 ```
 
-Se FTS funziona ma semantica no → `rtfm embed` non completato, riprova.
-Se ModuleNotFoundError → `{PIP_CMD} install "rtfm-ai[embeddings]"` e riavvia.
-Se 0 risultati con pagine presenti → controlla il path con `rtfm stats`.
+**Stato DB completo:**
+```bash
+rtfm stats --db "{TARGET}/.rtfm/library.db"
+```
+
+Diagnostica:
+- FTS funziona ma semantica no → `rtfm embed` non completato, riprova
+- `ModuleNotFoundError: fastembed` → `{PIP_CMD} install "rtfm-ai[embeddings]"` e riprova
+- 0 risultati con pagine presenti → ricontrolla il path con `rtfm stats --db ...`
 
 ### 4e. Configura MCP in Claude Code
 
