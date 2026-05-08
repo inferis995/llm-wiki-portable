@@ -1,41 +1,78 @@
 # LLM Wiki Portable — Agent Instructions
 
-## Role
-You are a knowledge base maintainer. The user provides sources and directions, you create and organize wiki content.
+## Ruolo
 
-## Quick Reference
+Sei il maintainer di una knowledge base personale su drive portable. L'utente fornisce fonti e direzioni, tu crei e organizzi i contenuti wiki.
 
-| Operation | What to do |
+## Wiki Root
+
+`{wiki-root}` — usa questo path per tutte le operazioni sui file.
+
+## Ricerca Semantica (RTFM MCP)
+
+**Metodo PRIMARIO per TUTTE le query** — usa `rtfm_search` prima di leggere file.
+
+| Tool | Uso |
+|------|-----|
+| `rtfm_search` | Ricerca (corpus: `"wiki"`, search_type: `"hybrid"`) — **sempre prima** |
+| `rtfm_expand` | Contesto completo intorno a un risultato |
+| `rtfm_sync`   | Re-indicizza dopo ogni salvataggio pagine |
+| `rtfm_stats`  | Controlla stato DB e chunk indicizzati |
+
+Database: `{wiki-root}/.rtfm/library.db`
+
+**IMPORTANTE su `search_type`:**
+- `"fts"` = keyword (default — limitato)
+- `"semantic"` = solo embedding
+- `"hybrid"` = FTS + embedding — **usa sempre questo**
+
+Flusso per ogni query:
+1. `rtfm_search(query="...", corpus="wiki", search_type="hybrid")`
+2. `rtfm_expand` sui risultati rilevanti per contesto completo
+3. Leggi il file completo solo se necessario
+4. Rispondi con `[[citazioni]]`
+
+## Riferimento Rapido
+
+| Operazione | Cosa fare |
 |-----------|-----------|
-| **Ingest** | Save source → create pages → update index → update log → run sync.py |
-| **Query** | Search wiki → read pages → synthesize answer with [[citations]] |
-| **Lint** | Scan for orphans, contradictions, missing links → report → fix |
-| **Sync web** | `python {wiki-root}/sync.py` → open `web/index.html` |
+| **Ingest** | Salva fonte → crea pagine → aggiorna index → aggiorna log → sync.py → `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` |
+| **Query** | `rtfm_search` → `rtfm_expand` → leggi pagine → sintetizza con [[citazioni]] |
+| **Lint** | Scansiona orfani, link rotti, contraddizioni → riporta → correggi |
+| **Sync web** | `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json` |
 
-## Page Structure
-- `wiki/sources/src-*.md` — Source summaries
-- `wiki/entities/*.md` — Entities (tools, companies, projects)
-- `wiki/concepts/*.md` — Concepts (patterns, protocols, techniques)
-- `wiki/comparisons/*.md` — Comparisons
-- `raw/` — Original source files (never modify)
-- `raw/assets/` — Images and media
+## Struttura Pagine
+
+```
+{wiki-root}/wiki/sources/src-*.md   ← Riassunti di fonti
+{wiki-root}/wiki/entities/*.md      ← Tool, aziende, persone
+{wiki-root}/wiki/concepts/*.md      ← Idee, pattern, protocolli
+{wiki-root}/wiki/comparisons/*.md   ← Confronti
+{wiki-root}/raw/                    ← File originali (non modificare)
+{wiki-root}/raw/assets/             ← Immagini e media
+{wiki-root}/.rtfm/library.db        ← DB ricerca semantica
+```
 
 ## Frontmatter
+
 ```yaml
 ---
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-sources: [[source-1]]
+sources: [[src-nome-fonte]]
 tags: [tag1, tag2]
 ---
 ```
 
 ## Wikilinks
-- `[[page-name]]` — Link to another page
-- `[[page-name|Display Text]]` — Link with alias
-- Links resolve by: exact slug → slug suffix → case-insensitive title
 
-## After Every Change
-1. Update `wiki/index.md` if pages added/removed
-2. Append to `wiki/log.md`
-3. Run `python {wiki-root}/sync.py`
+- `[[nome-pagina]]` — link a un'altra pagina
+- `[[nome-pagina|Testo Visualizzato]]` — link con alias
+- I link si risolvono per: slug esatto → suffisso slug → titolo case-insensitive
+
+## Dopo Ogni Modifica
+
+1. Aggiorna `{wiki-root}/wiki/index.md` se aggiungi/rimuovi pagine
+2. Appendi a `{wiki-root}/wiki/log.md`
+3. `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json`
+4. `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` — mantieni il DB semantico aggiornato

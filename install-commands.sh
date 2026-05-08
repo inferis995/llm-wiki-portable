@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install-commands.sh — Copy skills to Claude Code and OpenCode
+# install-commands.sh — Copy commands to Claude Code and OpenCode, install rtfm-ai
 # Usage: bash install-commands.sh
 
 set -e
@@ -8,49 +8,63 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "=== LLM Wiki Portable — Install Commands ==="
 
-# Claude Code
+# ── Claude Code commands ──────────────────────────────────────────────────────
 CLAUDE_DIR="$HOME/.claude/commands"
 mkdir -p "$CLAUDE_DIR"
 cp "$SCRIPT_DIR/commands/install-portable-wiki.md" "$CLAUDE_DIR/"
 cp "$SCRIPT_DIR/commands/llm-dashboard.md" "$CLAUDE_DIR/"
-echo "[OK] Claude Code commands installed:"
-echo "     /install-portable-wiki"
-echo "     /llm-dashboard"
+echo "[OK] Claude Code commands: /install-portable-wiki  /llm-dashboard"
 
-# OpenCode
+# ── OpenCode commands ──────────────────────────────────────────────────────────
 OPENCODE_DIR="$HOME/.config/opencode/commands"
 mkdir -p "$OPENCODE_DIR"
-cp "$SCRIPT_DIR/templates/.opencode/commands/install-portable-wiki.md" "$OPENCODE_DIR/"
-cp "$SCRIPT_DIR/templates/.opencode/commands/llm-dashboard.md" "$OPENCODE_DIR/"
-echo "[OK] OpenCode commands installed"
+cp "$SCRIPT_DIR/commands/install-portable-wiki.md" "$OPENCODE_DIR/"
+cp "$SCRIPT_DIR/commands/llm-dashboard.md" "$OPENCODE_DIR/"
+echo "[OK] OpenCode commands: /install-portable-wiki  /llm-dashboard"
 
-# RTFM MCP (optional)
-if pip show rtfm-ai > /dev/null 2>&1; then
-  echo "[OK] rtfm-ai already installed"
-else
-  echo "[..] Installing rtfm-ai..."
-  pip install rtfm-ai
-  echo "[OK] rtfm-ai installed"
+# ── Python detection ───────────────────────────────────────────────────────────
+PY_CMD=""
+PIP_CMD=""
+if command -v python3 &>/dev/null; then
+  PY_CMD="python3"
+  PIP_CMD="pip3"
+elif command -v python &>/dev/null; then
+  PY_CMD="python"
+  PIP_CMD="pip"
 fi
 
-# MCP config
-MCP_FILE="$HOME/.claude/mcp.json"
-if [ -f "$MCP_FILE" ]; then
-  if grep -q '"rtfm"' "$MCP_FILE" 2>/dev/null; then
-    echo "[OK] RTFM MCP already configured"
+if [ -z "$PY_CMD" ]; then
+  echo "[!!] Python non trovato — installa Python 3.8+ e riesegui"
+  echo "     Poi installa manualmente: pip install 'rtfm-ai[embeddings]'"
+  echo ""
+  echo "=== Done (parziale) ==="
+  echo "Open Claude Code and run: /install-portable-wiki"
+  exit 0
+fi
+
+echo "[OK] Python: $($PY_CMD --version 2>&1)"
+
+# ── rtfm-ai with embeddings ───────────────────────────────────────────────────
+EMBEDDINGS_OK=false
+if $PY_CMD -c "import rtfm; import fastembed" 2>/dev/null; then
+  EMBEDDINGS_OK=true
+  echo "[OK] rtfm-ai + fastembed già installati"
+fi
+
+if [ "$EMBEDDINGS_OK" = false ]; then
+  echo "[..] Installazione rtfm-ai[embeddings]..."
+  $PIP_CMD install "rtfm-ai[embeddings]" || {
+    echo "[!!] Installazione fallita con pip standard. Provo con --user..."
+    $PIP_CMD install --user "rtfm-ai[embeddings]"
+  }
+
+  # Verify
+  if $PY_CMD -c "import rtfm; import fastembed" 2>/dev/null; then
+    echo "[OK] rtfm-ai[embeddings] installato (fastembed ONNX)"
   else
-    echo "[..] Adding RTFM MCP to mcp.json..."
-    python3 -c "
-import json
-with open('$MCP_FILE','r') as f: d=json.load(f)
-d.setdefault('mcpServers',{})['rtfm']={'command':'python','args':['-m','rtfm.mcp']}
-with open('$MCP_FILE','w') as f: json.dump(d,f,indent=2)
-"
-    echo "[OK] RTFM MCP configured"
+    echo "[!!] fastembed non disponibile — la ricerca semantica non funzionerà"
+    echo "     Prova: $PIP_CMD install fastembed"
   fi
-else
-  echo '{"mcpServers":{"rtfm":{"command":"python","args":["-m","rtfm.mcp"]}}}' > "$MCP_FILE"
-  echo "[OK] mcp.json created with RTFM MCP"
 fi
 
 echo ""
