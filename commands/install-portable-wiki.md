@@ -20,8 +20,10 @@ Salva come `TARGET` (usa sempre forward slash, es. `D:/wiki-portable`).
 - **personal** — Studio, note, ricerca personale (`sources / entities / concepts / comparisons`)
 - **work** — Progetti e clienti (`projects / clients / meetings / tasks / resources`)
 - **business** — Knowledge aziendale (`departments / processes / people / decisions / documents / meetings`)
+- **professional** — Avvocato, commercialista, consulente, medico (`clients / matters / deadlines / contacts / notes`)
+- **research** — Ricercatore, giornalista, studente PhD, analista (`sources / notes / topics / people / output`)
 
-Salva come `TEMPLATE` = `"personal"`, `"work"` o `"business"`.
+Salva come `TEMPLATE` = `"personal"`, `"work"`, `"business"`, `"professional"` o `"research"`.
 
 ---
 
@@ -87,6 +89,24 @@ Le cartelle dipendono dal template scelto:
 {TARGET}/wiki/decisions/
 {TARGET}/wiki/documents/
 {TARGET}/wiki/meetings/
+```
+
+**professional:**
+```
+{TARGET}/wiki/clients/
+{TARGET}/wiki/matters/
+{TARGET}/wiki/deadlines/
+{TARGET}/wiki/contacts/
+{TARGET}/wiki/notes/
+```
+
+**research:**
+```
+{TARGET}/wiki/sources/
+{TARGET}/wiki/notes/
+{TARGET}/wiki/topics/
+{TARGET}/wiki/people/
+{TARGET}/wiki/output/
 ```
 
 **Sempre (tutti i template):**
