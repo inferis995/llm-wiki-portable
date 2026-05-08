@@ -1,164 +1,394 @@
-Install or configure the LLM Wiki Portable system on a USB drive or local directory.
+Installa e configura LLM Wiki Portable su USB o directory locale, con MCP RTFM e ricerca semantica funzionante al 100%.
 
-## Step 0: Choose setup mode
+---
 
-Ask the user:
-"Percorso della wiki portable? (es. D:\, E:\, C:\Users\Nome\wiki-portable)"
+## Step 0: Parametri
 
-Then ask which setup mode:
-1. **Classica** — Solo wiki base: directory, file wiki, web UI, sync.py, comandi. Niente MCP, niente ricerca semantica, niente config globale.
-2. **Completa** — Wiki + MCP RTFM con ricerca semantica + CLAUDE.md globale per Claude Code + agente OpenCode globale + comandi. Tutto configurato per funzionare da qualsiasi directory.
+Chiedi all'utente:
 
-Based on the choice, set `MODE_SETUP = "classica"` or `"completa"`.
+1. **Percorso di destinazione della wiki:**
+   `"Dove vuoi installare la wiki portable? (es. D:\, E:\, /media/usb, ~/wiki-portable)"`
+   Salva come `TARGET` (usa sempre forward slash, es. `D:/wiki-portable`).
 
-## Step 1: Detect target state
+2. **Modalità di setup:**
+   - **Classica** — Solo wiki + web UI + sync.py + comandi. Niente MCP, niente ricerca semantica.
+   - **Completa** — Tutto sopra + MCP RTFM con embedding + `~/.claude/CLAUDE.md` globale + agente OpenCode globale.
 
-**Check if wiki already exists at the target:**
-- Look for `{target}/wiki/` directory with .md files
-- Look for `{target}/web/index.html`
-- Look for `{target}/sync.py`
+   Salva come `MODE` = `"classica"` o `"completa"`.
 
-**If ALL of these exist → MODE: "Configura su nuovo PC"**
-The wiki is already on the USB. The user moved to a different PC. Only configure the local system:
-- If MODE_SETUP = "classica": skip to Step 6 (commands only) → Step 7 → Step 8
-- If MODE_SETUP = "completa": skip to Step 4 → Step 5 → Step 6 → Step 7 → Step 8
+---
 
-**If NONE or SOME exist → MODE: "Prima installazione"**
-Ask the user to choose:
-- **Nuova wiki vuota** — Full setup from scratch
-- **Importa wiki esistente** — Full setup + copy existing MD files
+## Step 1: Rileva stato esistente
 
-Continue with all steps below.
+Controlla se esiste già una wiki:
+- `{TARGET}/wiki/` con file .md
+- `{TARGET}/web/index.html`
+- `{TARGET}/sync.py`
 
-## Step 2: Create directory structure (first install only)
+**Se TUTTI esistono → "Configura su nuovo PC"** (wiki già sull'USB, nuovo PC)
+- MODE classica: vai a Step 6 → Step 7 → Step 8
+- MODE completa: vai a Step 4 → Step 5 → Step 6 → Step 7 → Step 8
 
-Create these directories at the target location:
+**Se mancano → "Prima installazione"**
+Chiedi: nuova wiki vuota o importa wiki esistente?
+
+---
+
+## Step 2: Trova il template sorgente
+
+Il template (web/, sync.py, templates/) si trova nel repo clonato. Trovalo così:
+
+1. Controlla se esiste un path `llm-wiki-portable` o `portable-wiki` vicino a `~/.claude/commands/`:
+   - `~/llm-wiki-portable/`
+   - `~/portable-wiki/`
+   - `~/Desktop/llm-wiki-portable/`
+   - directory corrente
+2. Un modo affidabile: cerca `sync.py` + `web/index.html` + `templates/CLAUDE.md` insieme.
+3. Se non trovi: chiedi `"Dove hai clonato il repo llm-wiki-portable? (path della cartella)"`
+
+Salva come `TEMPLATE_SRC`.
+
+---
+
+## Step 3: Crea struttura (solo prima installazione)
+
+Crea le directory:
 ```
-{target}/wiki/sources/
-{target}/wiki/entities/
-{target}/wiki/concepts/
-{target}/wiki/comparisons/
-{target}/raw/assets/
-{target}/web/lib/
+{TARGET}/wiki/sources/
+{TARGET}/wiki/entities/
+{TARGET}/wiki/concepts/
+{TARGET}/wiki/comparisons/
+{TARGET}/raw/assets/
+{TARGET}/web/lib/
 ```
 
-## Step 3: Copy wiki files (first install only)
+**Se "Nuova wiki vuota":**
+- Crea `{TARGET}/wiki/index.md`:
+  ```markdown
+  ---
+  created: {TODAY}
+  updated: {TODAY}
+  tags: [index]
+  ---
 
-**If "Nuova wiki vuota":**
-- Create `{target}/wiki/index.md` with empty index template
-- Create `{target}/wiki/log.md` with empty log template
+  # Wiki Index
 
-**If "Importa wiki esistente":**
-- Ask: "Percorso della wiki esistente da importare? (es. C:\Users\Infer\wiki\wiki)"
-- Copy all .md files from that directory to `{target}/wiki\` preserving subdirectory structure
-- If source has `raw/`, ask if they want to copy that too
-- Copy web UI files from the source portable-wiki template to `{target}/web\`:
-  `index.html`, `app.js`, `styles.css`, `lib/*.js`
-- Copy `sync.py` to `{target}/sync.py`
+  ## Sources
+  ## Entities
+  ## Concepts
+  ## Comparisons
+  ```
+- Crea `{TARGET}/wiki/log.md`:
+  ```markdown
+  # Wiki Log
+  ```
 
-**If "Nuova wiki vuota":**
-- Copy web UI files from the source portable-wiki template to `{target}/web\`:
-  `index.html`, `app.js`, `styles.css`, `lib/*.js`
-- Copy `sync.py` to `{target}/sync.py`
+**Se "Importa wiki esistente":**
+- Chiedi: `"Percorso della wiki esistente da importare?"`
+- Copia tutti i .md preservando la struttura delle sottodirectory
+- Se c'è una `raw/` chiedi se copiarla
 
-The source portable-wiki template is at `C:\Users\Infer\portable-wiki\` (or wherever this tool was originally set up). Look for `portable-wiki/web/` and `portable-wiki/sync.py`.
+**Sempre:**
+Copia da `{TEMPLATE_SRC}/`:
+- `web/index.html` → `{TARGET}/web/index.html`
+- `web/app.js` → `{TARGET}/web/app.js`
+- `web/styles.css` → `{TARGET}/web/styles.css`
+- `web/lib/*.js` → `{TARGET}/web/lib/`
+- `sync.py` → `{TARGET}/sync.py`
 
-## Step 4: Install MCP server + semantic search (only if MODE_SETUP = "completa")
+---
 
-### 4a. Install rtfm-ai with embeddings
-- Run `pip show rtfm-ai`
-- If NOT installed: run `pip install "rtfm-ai[embeddings]"`
-- If installed but without embeddings: run `pip install "rtfm-ai[embeddings]"`
+## Step 4: Python e rtfm-ai (solo MODE completa)
 
-### 4b. Configure RTFM MCP in ~/.claude/mcp.json
-- Read the file, check if `rtfm` key exists in `mcpServers`
-- If NOT present: add the entry (merge with existing, don't overwrite).
-  Always include `env` with `RTFM_DB` pointing to `{target}/.rtfm/library.db` and `RTFM_MCP_PROFILE: "admin"`:
-```json
-{
-  "mcpServers": {
-    "rtfm": {
-      "command": "python",
-      "args": ["-m", "rtfm.mcp"],
-      "env": {
-        "RTFM_DB": "{target}/.rtfm/library.db",
-        "RTFM_MCP_PROFILE": "admin"
-      }
-    }
-  }
-}
+### 4a. Rileva Python
+
+Prova in ordine finché uno funziona:
+```bash
+python3 --version
+python --version
 ```
-Use forward slashes in the path (e.g. `D:/.rtfm/library.db`).
 
-### 4c. Initialize RTFM index for semantic search
-- Create `{target}/.rtfm/` directory if not exists
-- Create `{target}/.rtfm/config.json` pointing to the wiki:
+Se nessuno funziona: informa l'utente e offri di continuare in MODE classica.
+
+Salva come `PY_CMD` (es. `python3`) e `PIP_CMD` (es. `pip3`).
+Su Windows usa `python` e `pip` (o `python -m pip`).
+
+### 4b. Installa rtfm-ai con embeddings
+
+Controlla se embeddings già disponibili:
+```bash
+{PY_CMD} -c "import rtfm; from sentence_transformers import SentenceTransformer; print('ok')"
+```
+
+Se fallisce, installa:
+```bash
+{PIP_CMD} install "rtfm-ai[embeddings]"
+```
+
+Verifica di nuovo dopo l'installazione. Se ancora fallisce:
+```bash
+{PIP_CMD} install sentence-transformers
+```
+
+Se dopo tutto ancora fallisce, continua ma avvisa: "Ricerca semantica non disponibile — rtfm userà keyword search."
+
+### 4c. Crea indice RTFM
+
+Crea la directory `{TARGET}/.rtfm/`.
+
+Crea `{TARGET}/.rtfm/config.json`:
 ```json
 {
   "sources": [
     {
-      "path": "{target}/wiki",
+      "path": "{TARGET}/wiki",
       "corpus": "wiki",
       "extensions": ".md"
     }
   ]
 }
 ```
-Use forward slashes in the path.
-- Run initial sync: `cd {target} && RTFM_DB="{target}/.rtfm/library.db" python -m rtfm.cli sync --force`
-- If embeddings fail, install: `pip install "rtfm-ai[embeddings]"` and re-run sync
+Usa forward slash anche su Windows.
 
-Inform the user about MCP + semantic search status.
+Esegui la prima indicizzazione:
 
-### 4d. Configure RTFM MCP for OpenCode
-- Read `~/.config/opencode/opencode.json`
-- Check if `rtfm` key exists in `mcp`
-- If NOT present: add the entry (merge with existing, don't overwrite):
+**Linux/macOS:**
+```bash
+RTFM_DB="{TARGET}/.rtfm/library.db" {PY_CMD} -m rtfm.cli sync --force
+```
+
+**Windows (cmd):**
+```cmd
+set RTFM_DB={TARGET}/.rtfm/library.db && {PY_CMD} -m rtfm.cli sync --force
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; {PY_CMD} -m rtfm.cli sync --force
+```
+
+Riporta il numero di chunk indicizzati. Se 0 chunk e ci sono pagine .md, controlla il path.
+
+### 4d. Verifica che la ricerca funzioni
+
+Esegui un test concreto:
+
+**Linux/macOS:**
+```bash
+RTFM_DB="{TARGET}/.rtfm/library.db" {PY_CMD} -m rtfm.cli search "wiki"
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; {PY_CMD} -m rtfm.cli search "wiki"
+```
+
+Se ottieni risultati → "Ricerca semantica funzionante!"
+Se errore → diagnostica:
+- DB non trovato: controlla il path `{TARGET}/.rtfm/library.db`
+- `ModuleNotFoundError`: reinstalla con `{PIP_CMD} install "rtfm-ai[embeddings]"`
+- Nessun risultato ma ci sono pagine: rirunna il sync con `--force`
+
+### 4e. Configura MCP in Claude Code
+
+**IMPORTANTE: il file corretto è `~/.claude/settings.json`, NON `mcp.json`.**
+
+Leggi `~/.claude/settings.json` (crea `{}` se non esiste). Aggiungi/aggiorna la chiave `mcpServers.rtfm`:
+
 ```json
 {
-  "mcp": {
+  "mcpServers": {
     "rtfm": {
-      "type": "local",
-      "command": ["python", "-m", "rtfm.mcp"],
-      "enabled": true,
-      "environment": {
-        "RTFM_DB": "{target}/.rtfm/library.db",
+      "command": "{PY_CMD}",
+      "args": ["-m", "rtfm.mcp"],
+      "env": {
+        "RTFM_DB": "{TARGET}/.rtfm/library.db",
         "RTFM_MCP_PROFILE": "admin"
       }
     }
   }
 }
 ```
-Use forward slashes in the path.
 
-## Step 5: Install global instructions (only if MODE_SETUP = "completa")
+Usa sempre forward slash nel path anche su Windows (es. `D:/.rtfm/library.db`).
 
-### 5a. Claude Code — ~/.claude/CLAUDE.md (global)
-Create `~/.claude/CLAUDE.md` with the wiki instructions. This makes the wiki accessible from any directory in Claude Code.
+Scrivi il file aggiornato (merge — non sovrascrivere altre chiavi).
 
-The content MUST include a **Semantic Search (RTFM MCP)** section with:
-- `rtfm_search` (corpus `wiki`) as primary search method for ALL queries
-- `rtfm_expand` for full context around search results
-- `rtfm_sync` to re-index after every page save
-- Database path: `{target}/.rtfm/library.db`
+Usa questo snippet Python per la scrittura sicura:
+```python
+import json, os
+path = os.path.expanduser("~/.claude/settings.json")
+data = {}
+if os.path.exists(path):
+    with open(path) as f:
+        data = json.load(f)
+data.setdefault("mcpServers", {})["rtfm"] = {
+    "command": "{PY_CMD}",
+    "args": ["-m", "rtfm.mcp"],
+    "env": {
+        "RTFM_DB": "{TARGET}/.rtfm/library.db",
+        "RTFM_MCP_PROFILE": "admin"
+    }
+}
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+print("settings.json aggiornato")
+```
 
-Other required sections:
-- Wiki root path (`{target}/` with forward slashes)
-- Structure overview (including `.rtfm/` directory)
-- Operations (Ingest, Query, Lint) — all using rtfm_search as first step
-- Page format with frontmatter
-- Conventions (wikilinks, directories, naming)
-- Log format
-- After every change: update index, update log, run sync.py, run rtfm_sync
+### 4f. Configura MCP in OpenCode
 
-Replace ALL path placeholders with the actual target path using forward slashes.
+Leggi `~/.config/opencode/opencode.json` (crea `{}` se non esiste). Aggiungi/aggiorna `mcp.rtfm`:
 
-### 5b. OpenCode agent — ~/.config/opencode/agents/wiki.md (global)
-Create `~/.config/opencode/agents/wiki.md` with proper frontmatter:
+```json
+{
+  "mcp": {
+    "rtfm": {
+      "type": "local",
+      "command": ["{PY_CMD}", "-m", "rtfm.mcp"],
+      "enabled": true,
+      "environment": {
+        "RTFM_DB": "{TARGET}/.rtfm/library.db",
+        "RTFM_MCP_PROFILE": "admin"
+      }
+    }
+  }
+}
+```
+
+### 4g. Riavvio MCP
+
+**IMPORTANTE**: Avvisa l'utente:
+
+> "MCP RTFM configurato. **Devi riavviare Claude Code** per attivare il server MCP.
+> Dopo il riavvio potrai usare `rtfm_search` direttamente nelle conversazioni.
+> Per testare: chiedi a Claude 'cerca nella wiki: [qualcosa]'."
+
+---
+
+## Step 5: Istruzioni globali per Claude (solo MODE completa)
+
+**CRITICO**: CLAUDE.md e AGENTS.md vanno installati sul **PC locale** (non sull'USB) in modo che Claude possa trovare la wiki da qualsiasi directory.
+
+### 5a. Genera `~/.claude/CLAUDE.md` (globale)
+
+Leggi il template da `{TEMPLATE_SRC}/templates/CLAUDE.md`.
+Sostituisci **tutte** le occorrenze di `{wiki-root}` con `{TARGET}` (forward slash).
+
+Genera il contenuto con questa struttura minima garantita:
+
+```markdown
+# LLM Wiki Portable — {TARGET}
+
+Sei il maintainer di una knowledge base personale su drive portable.
+
+## Wiki Root
+`{TARGET}` — usa questo path per tutte le operazioni sui file.
+
+## Struttura
+
+```
+{TARGET}/
+├── wiki/
+│   ├── sources/src-*.md      ← Riassunti di fonti
+│   ├── entities/*.md         ← Tool, aziende, persone
+│   ├── concepts/*.md         ← Idee, pattern, protocolli
+│   ├── comparisons/*.md      ← A vs B
+│   ├── index.md              ← Catalogo di tutte le pagine
+│   └── log.md                ← Changelog append-only
+├── raw/                      ← File originali (non modificare mai)
+│   └── assets/
+├── web/index.html            ← UI 3D (apri nel browser)
+├── .rtfm/library.db          ← Database ricerca semantica
+└── sync.py                   ← Esegui dopo ogni modifica
+```
+
+## Ricerca Semantica (RTFM MCP)
+
+**Metodo PRIMARIO per TUTTE le query** — usa sempre `rtfm_search` prima di leggere file.
+
+| Tool | Uso |
+|------|-----|
+| `rtfm_search` | Cerca (corpus: `"wiki"`) — SEMPRE PRIMA |
+| `rtfm_expand` | Ottieni contesto completo intorno a un risultato |
+| `rtfm_sync`   | Re-indicizza dopo ogni salvataggio |
+
+Database: `{TARGET}/.rtfm/library.db`
+
+## Operazioni
+
+### Ingest (l'utente fornisce una fonte)
+1. Salva in `{TARGET}/raw/` se è un file
+2. Leggi l'intera fonte
+3. Discuti i punti chiave con l'utente
+4. Crea pagine wiki:
+   - `{TARGET}/wiki/sources/src-{nome}.md`
+   - Aggiorna pagine `entities/` e `concepts/` correlate
+   - Usa `[[wikilinks]]` per i cross-reference
+5. Aggiorna `{TARGET}/wiki/index.md`
+6. Appendi a `{TARGET}/wiki/log.md`
+7. Esegui: `python {TARGET}/sync.py --wiki-dir {TARGET}/wiki --output {TARGET}/web/data.json`
+8. Esegui: `rtfm_sync` (re-indicizza)
+
+### Query (l'utente fa una domanda)
+1. `rtfm_search(query, corpus="wiki")` — **sempre primo**
+2. `rtfm_expand` sui risultati migliori per contesto completo
+3. Leggi pagine specifiche se necessario
+4. Rispondi con `[[citazioni]]`
+
+### Lint
+1. Scansiona pagine orfane, link rotti, contraddizioni
+2. Riporta e correggi
+
+## Formato pagina
 
 ```markdown
 ---
-description: LLM Wiki Portable — knowledge base maintainer on {target} with semantic search
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+sources: [[src-nome]]
+tags: [tag1, tag2]
+---
+
+# Titolo Pagina
+
+Contenuto con [[wikilinks]] ad altre pagine.
+
+## Punti Chiave
+- Punto 1
+
+## Correlate
+- [[pagina-correlata]]
+```
+
+## Convenzioni
+
+- `[[wikilinks]]` per tutti i cross-reference
+- `wiki/sources/src-*` per riassunti fonti
+- `wiki/entities/` per tool, aziende, persone
+- `wiki/concepts/` per idee, pattern, protocolli
+- `wiki/comparisons/` per confronti
+- Conciso: bullet point > paragrafi
+- Sempre cita con `[[link]]`
+- Lingua: segui la lingua dell'utente
+
+## Dopo ogni modifica
+
+1. Aggiorna `{TARGET}/wiki/index.md`
+2. Appendi a `{TARGET}/wiki/log.md`
+3. `python {TARGET}/sync.py --wiki-dir {TARGET}/wiki --output {TARGET}/web/data.json`
+4. `rtfm_sync`
+```
+
+Scrivi questo contenuto in `~/.claude/CLAUDE.md`.
+Scrivi anche una copia in `{TARGET}/CLAUDE.md` come backup sull'USB.
+
+### 5b. Genera `~/.config/opencode/agents/wiki.md` (globale)
+
+Crea la directory `~/.config/opencode/agents/` se non esiste.
+
+```markdown
+---
+description: LLM Wiki Portable — knowledge base su {TARGET} con ricerca semantica
 mode: subagent
 tools:
   write: true
@@ -166,71 +396,81 @@ tools:
   bash: true
   read: true
 ---
+
+# LLM Wiki Portable — {TARGET}
+
+[stesso contenuto di CLAUDE.md ma formattato per OpenCode]
 ```
 
-The content MUST include the same **Semantic Search (RTFM MCP)** section as CLAUDE.md, with rtfm_search as primary search, rtfm_expand for context, and rtfm_sync after saves.
+Sostituisci `{TARGET}` con il path effettivo.
+Scrivi anche una copia in `{TARGET}/AGENTS.md`.
 
-This makes the wiki accessible via `@wiki` from any project in OpenCode.
-Use forward slashes for all paths.
-
-### 5c. Also create local copies on the USB
-Create `{target}/CLAUDE.md` and `{target}/AGENTS.md` on the USB drive as reference copies.
-These must also include the semantic search instructions.
-These are useful if someone uses the USB on a different machine.
-
-## Step 6: Install commands (always)
-
-**Claude Code commands** — create in `~/.claude/commands/`:
-- `llm-dashboard.md`
-
-**OpenCode commands** — create in `~/.config/opencode/commands/` (GLOBAL):
-- `llm-dashboard.md` with frontmatter:
-```markdown
 ---
-description: Launch LLM Wiki dashboard in browser
-agent: build
+
+## Step 6: Installa comandi (sempre)
+
+**Claude Code** — crea in `~/.claude/commands/`:
+- `llm-dashboard.md` (contenuto: vedi `{TEMPLATE_SRC}/commands/llm-dashboard.md`)
+
+**OpenCode globale** — crea in `~/.config/opencode/commands/`:
+- `llm-dashboard.md` con frontmatter:
+  ```markdown
+  ---
+  description: Apri la dashboard LLM Wiki nel browser
+  agent: build
+  ---
+  ```
+  seguito dallo stesso contenuto del comando Claude Code.
+
 ---
+
+## Step 7: Genera data.js (sempre)
+
+Se `{TARGET}/web/data.js` non esiste O qualche .md è più recente di data.js:
+
+```bash
+python "{TARGET}/sync.py" --wiki-dir "{TARGET}/wiki" --output "{TARGET}/web/data.json"
 ```
 
-**OpenCode commands** — also create in `{target}/.opencode/commands/` (project-level backup):
-- `llm-dashboard.md` (same content)
+Questo genera sia `data.json` che `data.js`.
 
-The `llm-dashboard` command content:
-- Find wiki root (`{target}/` or ask user)
-- Check if data.js is older than .md files → run sync.py if needed
-- Open web/index.html in browser
-- Report page count
+---
 
-## Step 7: Generate data.js (always if missing or outdated)
+## Step 8: Report finale
 
-- If `{target}/web/data.js` doesn't exist OR any .md file is newer than data.js:
-  Run: `python "{target}/sync.py" --wiki-dir "{target}/wiki" --output "{target}/web/data.json"`
-- This generates both data.json and data.js
+### Se MODE = "classica"
 
-## Step 8: Report
+```
+✅ Setup Classica completato
 
-Show summary:
+Target:     {TARGET}
+Pagine:     {N} pagine, {L} link
+Comandi:    /install-portable-wiki  /llm-dashboard
 
-**If MODE_SETUP = "classica":**
-- **Mode**: Prima installazione / Configura su nuovo PC
-- **Setup**: Classica
-- **Target**: path
-- **Pages**: count from data.js
-- **Commands**: installati
-- **Dashboard**: `/llm-dashboard` (Claude Code) o `/llm-dashboard` (OpenCode) per aprire il graph
-- **Usage**: "Apri Claude Code nella directory della wiki per usarla."
+Uso: /llm-dashboard per aprire il grafo 3D.
+     Apri Claude Code nella cartella {TARGET} per usare la wiki.
+```
 
-**If MODE_SETUP = "completa":**
-- **Mode**: Prima installazione / Configura su nuovo PC
-- **Setup**: Completa
-- **Target**: path
-- **Pages**: count from data.js
-- **MCP RTFM**: già presente / installato ora
-- **Ricerca semantica**: attiva (X chunks indicizzati) / errore
-- **CLAUDE.md globale**: ~/.claude/CLAUDE.md creato
-- **OpenCode agent globale**: ~/.config/opencode/agents/wiki.md creato
-- **OpenCode command globale**: ~/.config/opencode/commands/llm-dashboard.md creato
-- **Commands**: installati
-- **Dashboard**: `/llm-dashboard` per aprire il graph
-- **OpenCode**: `@wiki` per invocare l'agente, `/llm-dashboard` per la dashboard
-- **Usage**: "La wiki è accessibile globalmente da qualsiasi directory. Apri Claude Code o OpenCode ovunque per usarla."
+### Se MODE = "completa"
+
+```
+✅ Setup Completa completato
+
+Target:          {TARGET}
+Pagine:          {N} pagine, {L} link
+Python:          {PY_CMD} {versione}
+rtfm-ai:         installato (con embeddings)
+Ricerca semant.: ✅ {N} chunk indicizzati  /  ⚠️ solo keyword
+MCP RTFM:        ~/.claude/settings.json aggiornato ← riavvia Claude Code!
+CLAUDE.md:       ~/.claude/CLAUDE.md creato (globale)
+OpenCode agent:  ~/.config/opencode/agents/wiki.md creato
+Comandi:         /install-portable-wiki  /llm-dashboard
+
+⚠️  RIAVVIA CLAUDE CODE per attivare il server MCP RTFM.
+
+Dopo il riavvio:
+  - Da qualsiasi directory: Claude trova automaticamente la wiki in {TARGET}
+  - Usa rtfm_search per cercare nella wiki
+  - /llm-dashboard per aprire il grafo 3D
+  - OpenCode: @wiki per invocare l'agente
+```
