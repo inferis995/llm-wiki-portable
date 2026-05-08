@@ -58,8 +58,8 @@ def parse_frontmatter(text):
            (val.startswith("'") and val.endswith("'")):
             val = val[1:-1]
 
-        # Inline list [a, b, c]
-        if val.startswith('[') and val.endswith(']'):
+        # Inline list [a, b, c] — but NOT [[wikilinks]] which start with [[
+        if val.startswith('[') and val.endswith(']') and not val.startswith('[['):
             val = [v.strip().strip("'\"") for v in val[1:-1].split(',') if v.strip()]
         elif val == '' or val == '[]':
             # Empty value — may be followed by block list items

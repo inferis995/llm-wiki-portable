@@ -486,7 +486,7 @@
     window.addEventListener("popstate", () => {
       if (location.hash) {
         const slug = decodeURIComponent(location.hash.slice(1));
-        if (slug && pageBySlug.has(slug)) showPage(slug);
+        if (slug && pageBySlug.has(slug)) navigateTo(slug, false);
       } else {
         showGraph();
       }
