@@ -70,9 +70,11 @@ Claude will ask:
 
 | Template | Use case | Folders |
 |----------|----------|---------|
-| `personal` | Study, notes, research | sources / entities / concepts / comparisons |
-| `work` | Projects & clients | projects / clients / meetings / tasks / resources |
-| `business` | Company knowledge base | departments / processes / people / decisions / documents / meetings |
+| `personal` | Study, notes, personal research | sources / entities / concepts / comparisons |
+| `work` | Freelance / project & client management | projects / clients / meetings / tasks / resources |
+| `business` | Company knowledge base, SOPs, decisions | departments / processes / people / decisions / documents / meetings |
+| `professional` | Lawyer, accountant, consultant, doctor | clients / matters / deadlines / contacts / notes |
+| `research` | Researcher, journalist, PhD student, analyst | sources / notes / topics / people / output |
 
 Then Claude will:
 - Copy the web UI and sync script
@@ -106,10 +108,12 @@ Then talk to Claude:
 | Template | Use case | Folders |
 |----------|----------|---------|
 | `personal` | Study, notes, personal research | `sources / entities / concepts / comparisons` |
-| `work` | Freelance / professional project management | `projects / clients / meetings / tasks / resources` |
+| `work` | Freelance / project & client management | `projects / clients / meetings / tasks / resources` |
 | `business` | Company knowledge base, SOPs, decisions | `departments / processes / people / decisions / documents / meetings` |
+| `professional` | Lawyer, accountant, consultant, doctor | `clients / matters / deadlines / contacts / notes` |
+| `research` | Researcher, journalist, PhD student, analyst | `sources / notes / topics / people / output` |
 
-All templates use the same Karpathy method: ingest → query → lint. Only the folder structure and CLAUDE.md instructions differ. The 3D graph colors are assigned automatically from the actual folders in your wiki.
+All templates use the same Karpathy method: ingest → query → lint. Claude rewrites existing pages with progressive synthesis — pages always represent the state of the art, not accumulated notes. The 3D graph colors are assigned automatically from the actual folders in your wiki.
 
 ## How It Works
 
