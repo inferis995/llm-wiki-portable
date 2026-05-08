@@ -65,7 +65,7 @@ Database: `{wiki-root}/.rtfm/library.db`
 5. Aggiorna `{wiki-root}/wiki/index.md`
 6. Appendi a `{wiki-root}/wiki/log.md`
 7. Esegui: `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json`
-8. Esegui: `rtfm_sync` (re-indicizza il DB semantico)
+8. Esegui: `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` — gli embedding si generano in background, attendi qualche secondo
 
 ### Query (l'utente fa una domanda)
 
@@ -119,7 +119,7 @@ Contenuto con [[wikilinks]] ad altre pagine.
 1. Aggiorna `{wiki-root}/wiki/index.md` se aggiungi/rimuovi pagine
 2. Appendi a `{wiki-root}/wiki/log.md`
 3. `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json`
-4. `rtfm_sync` — mantieni il DB semantico aggiornato
+4. `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` — mantieni il DB semantico aggiornato
 
 ## Formato Log
 

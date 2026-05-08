@@ -278,14 +278,16 @@ print(f"settings.json aggiornato (command: {rtfm_serve})")
 
 ### 4f. Configura MCP in OpenCode
 
-Leggi `~/.config/opencode/opencode.json` (crea `{}` se non esiste). Aggiungi/aggiorna `mcp.rtfm`:
+Leggi `~/.config/opencode/opencode.json` (crea `{}` se non esiste). Aggiungi/aggiorna `mcp.rtfm`.
+
+Usa `rtfm-serve` come comando — stesso principio di Claude Code:
 
 ```json
 {
   "mcp": {
     "rtfm": {
       "type": "local",
-      "command": ["{PY_CMD}", "-m", "rtfm.mcp"],
+      "command": ["rtfm-serve"],
       "enabled": true,
       "environment": {
         "RTFM_DB": "{TARGET}/.rtfm/library.db",
@@ -295,6 +297,8 @@ Leggi `~/.config/opencode/opencode.json` (crea `{}` se non esiste). Aggiungi/agg
   }
 }
 ```
+
+Se `rtfm-serve` non è nel PATH di OpenCode, usa il path assoluto trovato con `which rtfm-serve`.
 
 ### 4g. Riavvio MCP
 
@@ -371,7 +375,7 @@ Database: `{TARGET}/.rtfm/library.db`
 5. Aggiorna `{TARGET}/wiki/index.md`
 6. Appendi a `{TARGET}/wiki/log.md`
 7. Esegui: `python {TARGET}/sync.py --wiki-dir {TARGET}/wiki --output {TARGET}/web/data.json`
-8. Esegui: `rtfm_sync` (re-indicizza)
+8. Esegui: `rtfm_sync(path="{TARGET}/wiki", corpus="wiki")` (re-indicizza — nota: gli embedding sono generati in background, attendi qualche secondo)
 
 ### Query (l'utente fa una domanda)
 1. `rtfm_search(query="...", corpus="wiki", search_type="hybrid")` — **sempre primo**
@@ -420,7 +424,7 @@ Contenuto con [[wikilinks]] ad altre pagine.
 1. Aggiorna `{TARGET}/wiki/index.md`
 2. Appendi a `{TARGET}/wiki/log.md`
 3. `python {TARGET}/sync.py --wiki-dir {TARGET}/wiki --output {TARGET}/web/data.json`
-4. `rtfm_sync`
+4. `rtfm_sync(path="{TARGET}/wiki", corpus="wiki")`
 ```
 
 Scrivi questo contenuto in `~/.claude/CLAUDE.md`.

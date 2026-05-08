@@ -36,7 +36,7 @@ Flusso per ogni query:
 
 | Operazione | Cosa fare |
 |-----------|-----------|
-| **Ingest** | Salva fonte → crea pagine → aggiorna index → aggiorna log → sync.py → rtfm_sync |
+| **Ingest** | Salva fonte → crea pagine → aggiorna index → aggiorna log → sync.py → `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` |
 | **Query** | `rtfm_search` → `rtfm_expand` → leggi pagine → sintetizza con [[citazioni]] |
 | **Lint** | Scansiona orfani, link rotti, contraddizioni → riporta → correggi |
 | **Sync web** | `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json` |
@@ -75,4 +75,4 @@ tags: [tag1, tag2]
 1. Aggiorna `{wiki-root}/wiki/index.md` se aggiungi/rimuovi pagine
 2. Appendi a `{wiki-root}/wiki/log.md`
 3. `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json`
-4. `rtfm_sync` — mantieni il DB semantico aggiornato
+4. `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` — mantieni il DB semantico aggiornato
