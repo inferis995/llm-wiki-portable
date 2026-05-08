@@ -1,4 +1,4 @@
-# install-commands.ps1 — Copy commands to Claude Code and OpenCode, install rtfm-ai
+# install-commands.ps1 — Copy commands to Claude Code and OpenCode
 # Usage: powershell -File install-commands.ps1
 
 $ErrorActionPreference = "Stop"
@@ -20,60 +20,20 @@ Copy-Item "$ScriptDir\commands\install-portable-wiki.md" $OpenCodeDir -Force
 Copy-Item "$ScriptDir\commands\llm-dashboard.md" $OpenCodeDir -Force
 Write-Host "[OK] OpenCode commands: /install-portable-wiki  /llm-dashboard" -ForegroundColor Green
 
-# ── Python detection ───────────────────────────────────────────────────────────
-$PyCmd = $null
-$PipCmd = $null
-
+# ── Python check (needed for sync.py) ─────────────────────────────────────────
+$PyFound = $false
 if (Get-Command python3 -ErrorAction SilentlyContinue) {
-    $PyCmd = "python3"
-    $PipCmd = "pip3"
+    $pyVersion = & python3 --version 2>&1
+    Write-Host "[OK] Python: $pyVersion" -ForegroundColor Green
+    $PyFound = $true
 } elseif (Get-Command python -ErrorAction SilentlyContinue) {
-    $PyCmd = "python"
-    $PipCmd = "pip"
+    $pyVersion = & python --version 2>&1
+    Write-Host "[OK] Python: $pyVersion" -ForegroundColor Green
+    $PyFound = $true
 }
 
-if (-not $PyCmd) {
-    Write-Host "[!!] Python non trovato — installa Python 3.8+ e riesegui" -ForegroundColor Yellow
-    Write-Host "     Poi installa manualmente: pip install 'rtfm-ai[embeddings]'"
-    Write-Host ""
-    Write-Host "=== Done (parziale) ===" -ForegroundColor Cyan
-    Write-Host "Open Claude Code and run: /install-portable-wiki"
-    exit 0
-}
-
-$pyVersion = & $PyCmd --version 2>&1
-Write-Host "[OK] Python: $pyVersion" -ForegroundColor Green
-
-# ── rtfm-ai with embeddings ───────────────────────────────────────────────────
-$embeddingsOk = $false
-try {
-    & $PyCmd -c "import rtfm; import fastembed" 2>$null
-    if ($LASTEXITCODE -eq 0) { $embeddingsOk = $true }
-} catch {}
-
-if ($embeddingsOk) {
-    Write-Host "[OK] rtfm-ai + fastembed già installati" -ForegroundColor Green
-} else {
-    Write-Host "[..] Installazione rtfm-ai[embeddings]..."
-    try {
-        & $PipCmd install "rtfm-ai[embeddings]"
-    } catch {
-        Write-Host "[..] Provo con python -m pip..."
-        & $PyCmd -m pip install "rtfm-ai[embeddings]"
-    }
-
-    # Verify
-    try {
-        & $PyCmd -c "import rtfm; import fastembed" 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "[OK] rtfm-ai[embeddings] installato (fastembed ONNX)" -ForegroundColor Green
-        } else {
-            Write-Host "[!!] fastembed non disponibile — la ricerca semantica non funzionerà" -ForegroundColor Yellow
-            Write-Host "     Prova: $PipCmd install fastembed"
-        }
-    } catch {
-        Write-Host "[!!] Verifica fallita — controlla l'installazione manualmente" -ForegroundColor Yellow
-    }
+if (-not $PyFound) {
+    Write-Host "[!!] Python non trovato — installa Python 3.8+ per usare sync.py e la dashboard" -ForegroundColor Yellow
 }
 
 Write-Host ""

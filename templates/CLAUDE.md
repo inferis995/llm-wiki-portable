@@ -20,34 +20,7 @@ Sei il maintainer di una knowledge base personale su drive portable.
 ├── raw/                      ← File originali (non modificare mai)
 │   └── assets/               ← Immagini e media
 ├── web/index.html            ← UI grafo 3D (apri nel browser)
-├── .rtfm/library.db          ← Database ricerca semantica
 └── sync.py                   ← Esegui dopo ogni modifica wiki
-```
-
-## Ricerca Semantica (RTFM MCP)
-
-**Metodo PRIMARIO per TUTTE le query** — usa `rtfm_search` prima di leggere file.
-
-| Tool | Uso |
-|------|-----|
-| `rtfm_search` | Ricerca (corpus: `"wiki"`, search_type: `"hybrid"`) — **sempre prima** |
-| `rtfm_expand` | Contesto completo intorno a un risultato |
-| `rtfm_sync`   | Re-indicizza dopo ogni salvataggio pagine |
-| `rtfm_stats`  | Controlla stato DB e numero chunk indicizzati |
-
-Database: `{wiki-root}/.rtfm/library.db`
-
-**IMPORTANTE su `search_type`:**
-- `"fts"` = keyword search (default, ma limitato)
-- `"semantic"` = solo embedding
-- `"hybrid"` = FTS + embedding combinati — **usa sempre questo**
-
-**Flusso standard per ogni query:**
-```
-1. rtfm_search(query="...", corpus="wiki", search_type="hybrid")
-2. rtfm_expand sui risultati rilevanti per contesto completo
-3. Leggi il file completo solo se serve maggiore contesto
-4. Rispondi con [[citazioni]]
 ```
 
 ## Operazioni
@@ -65,13 +38,12 @@ Database: `{wiki-root}/.rtfm/library.db`
 5. Aggiorna `{wiki-root}/wiki/index.md`
 6. Appendi a `{wiki-root}/wiki/log.md`
 7. Esegui: `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json`
-8. Esegui: `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` — gli embedding si generano in background, attendi qualche secondo
 
 ### Query (l'utente fa una domanda)
 
-1. `rtfm_search(query="...", corpus="wiki", search_type="hybrid")` — **sempre primo**
-2. `rtfm_expand` sui risultati migliori per contesto completo
-3. Leggi pagine specifiche se necessario
+1. Leggi `{wiki-root}/wiki/index.md` per orientarti
+2. Leggi le pagine rilevanti direttamente
+3. Se cerchi un termine specifico: `grep -r "termine" {wiki-root}/wiki/`
 4. Sintetizza la risposta con `[[citazioni]]`
 5. Se la risposta è di valore, offri di salvarla come nuova pagina
 
@@ -119,7 +91,6 @@ Contenuto con [[wikilinks]] ad altre pagine.
 1. Aggiorna `{wiki-root}/wiki/index.md` se aggiungi/rimuovi pagine
 2. Appendi a `{wiki-root}/wiki/log.md`
 3. `python {wiki-root}/sync.py --wiki-dir {wiki-root}/wiki --output {wiki-root}/web/data.json`
-4. `rtfm_sync(path="{wiki-root}/wiki", corpus="wiki")` — mantieni il DB semantico aggiornato
 
 ## Formato Log
 
