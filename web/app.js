@@ -5,26 +5,11 @@
   "use strict";
 
   // ── Constants ──────────────────────────────────────────────
-  const CATEGORY_COLORS = {
-    sources:     "#3b82f6",
-    entities:    "#22c55e",
-    concepts:    "#f59e0b",
-    comparisons: "#a855f7",
-    root:        "#6b7280",
-  };
-  const CATEGORY_LABELS = {
-    sources:     "Fonti",
-    entities:    "Entità",
-    concepts:    "Concetti",
-    comparisons: "Confronti",
-    root:        "Root",
-  };
-  const CATEGORY_ORDER = [
-    "sources",
-    "entities",
-    "concepts",
-    "comparisons",
-  ];
+  const FALLBACK_COLOR = "#6b7280";
+
+  // Populated from WIKI_DATA.categories after load
+  let CATEGORY_COLORS = {};
+  let CATEGORY_ORDER  = [];
 
   // ── State ──────────────────────────────────────────────────
   let pages = [];
@@ -68,6 +53,11 @@
       return;
     }
 
+    // Build category map from WIKI_DATA (generated dynamically by sync.py)
+    const rawCats = WIKI_DATA.categories || {};
+    CATEGORY_COLORS = Object.assign({ root: FALLBACK_COLOR }, rawCats);
+    CATEGORY_ORDER  = Object.keys(rawCats);
+
     // Build O(1) lookup map
     pages.forEach((p) => pageBySlug.set(p.slug, p));
 
@@ -86,12 +76,16 @@
   }
 
   // ── Legend ─────────────────────────────────────────────────
+  function catLabel(cat) {
+    return cat.charAt(0).toUpperCase() + cat.slice(1);
+  }
+
   function buildLegend() {
     legend.innerHTML = CATEGORY_ORDER.map(
       (cat) =>
         `<span class="legend-item">` +
-        `<span class="category-dot" style="background:${CATEGORY_COLORS[cat]}"></span>` +
-        `${CATEGORY_LABELS[cat]}</span>`
+        `<span class="category-dot" style="background:${CATEGORY_COLORS[cat] || FALLBACK_COLOR}"></span>` +
+        `${catLabel(cat)}</span>`
     ).join("");
   }
 
@@ -190,7 +184,7 @@
     });
 
     let html = "";
-    const allCats = [...CATEGORY_ORDER, "root"];
+    const allCats = [...CATEGORY_ORDER, "root"].filter((c, i, a) => a.indexOf(c) === i);
     allCats.forEach((cat) => {
       const catPages = grouped[cat];
       if (!catPages) return;
@@ -198,8 +192,8 @@
       const arrow = collapsed ? "▶" : "▼";
       html += `<div class="category-group">
         <div class="category-header" data-cat="${cat}">
-          <span class="category-dot" style="background:${CATEGORY_COLORS[cat] || CATEGORY_COLORS.root}"></span>
-          ${CATEGORY_LABELS[cat] || cat}
+          <span class="category-dot" style="background:${CATEGORY_COLORS[cat] || FALLBACK_COLOR}"></span>
+          ${catLabel(cat)}
           <span class="category-count">${catPages.length}</span>
           <span class="category-arrow">${arrow}</span>
         </div>`;
@@ -264,11 +258,11 @@
     backBtn.style.display = "inline-flex";
     topbarTitle.textContent = page.title;
 
-    const catColor = CATEGORY_COLORS[page.category] || CATEGORY_COLORS.root;
-    const catLabel = CATEGORY_LABELS[page.category] || page.category;
+    const catColor = CATEGORY_COLORS[page.category] || FALLBACK_COLOR;
+    const catBadge = catLabel(page.category);
 
     let headerHtml =
-      `<span class="category-badge" style="background:${catColor}30;color:${catColor}">${catLabel}</span>` +
+      `<span class="category-badge" style="background:${catColor}30;color:${catColor}">${catBadge}</span>` +
       `<h2>${page.title}</h2><div class="meta">`;
     if (page.frontmatter.updated)
       headerHtml += `Aggiornato: ${page.frontmatter.updated}`;
@@ -398,7 +392,7 @@
   }
 
   function buildNodeObject(node, connectionCounts) {
-    const color    = CATEGORY_COLORS[node.category] || "#64748b";
+    const color    = CATEGORY_COLORS[node.category] || FALLBACK_COLOR;
     const count    = connectionCounts[node.id] || 0;
     const size     = 3 + Math.min(count * 0.4, 4);
     const isActive = activeSlug === node.id;

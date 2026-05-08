@@ -64,10 +64,20 @@ Open **Claude Code** or **OpenCode** and run:
 /install-portable-wiki
 ```
 
-Claude will ask where to put the wiki (USB drive path or any folder), then:
+Claude will ask:
+1. **Where** to put the wiki (USB drive path or any folder)
+2. **Which template** to use:
+
+| Template | Use case | Folders |
+|----------|----------|---------|
+| `personal` | Study, notes, research | sources / entities / concepts / comparisons |
+| `work` | Projects & clients | projects / clients / meetings / tasks / resources |
+| `business` | Company knowledge base | departments / processes / people / decisions / documents / meetings |
+
+Then Claude will:
 - Copy the web UI and sync script
 - Write `~/.claude/CLAUDE.md` globally so Claude finds your wiki from any directory
-- Create the wiki structure
+- Create the folder structure for your chosen template
 
 <details>
 <summary>OpenCode with commands</summary>
@@ -90,6 +100,16 @@ Then talk to Claude:
 - *"Show me everything related to [[kubernetes]]"* → Claude reads the graph
 
 > **After setup:** Claude finds your wiki from **any directory** — you don't need to open a terminal in the wiki folder. The global `~/.claude/CLAUDE.md` points to your USB/folder path.
+
+## Templates
+
+| Template | Use case | Folders |
+|----------|----------|---------|
+| `personal` | Study, notes, personal research | `sources / entities / concepts / comparisons` |
+| `work` | Freelance / professional project management | `projects / clients / meetings / tasks / resources` |
+| `business` | Company knowledge base, SOPs, decisions | `departments / processes / people / decisions / documents / meetings` |
+
+All templates use the same Karpathy method: ingest → query → lint. Only the folder structure and CLAUDE.md instructions differ. The 3D graph colors are assigned automatically from the actual folders in your wiki.
 
 ## How It Works
 

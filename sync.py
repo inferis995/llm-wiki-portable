@@ -14,7 +14,17 @@ import argparse
 WIKILINK_RE = re.compile(r'\[\[([^\]|]+)(?:\|([^\]]+))?\]\]')
 FRONTMATTER_RE = re.compile(r'^---\s*\n(.*?)\n---\s*\n', re.DOTALL)
 
-CATEGORY_ORDER = ["sources", "entities", "concepts", "comparisons"]
+PALETTE = [
+    "#3b82f6",  # blue
+    "#22c55e",  # green
+    "#f59e0b",  # amber
+    "#a855f7",  # purple
+    "#ef4444",  # red
+    "#06b6d4",  # cyan
+    "#f97316",  # orange
+    "#ec4899",  # pink
+]
+FALLBACK_COLOR = "#6b7280"  # gray for root / unknown
 
 
 def parse_frontmatter(text):
@@ -140,6 +150,27 @@ def collect_frontmatter_links(meta):
     return links
 
 
+def detect_categories(wiki_dir):
+    """Detect categories from top-level subdirectories of wiki_dir."""
+    cats = []
+    try:
+        for entry in sorted(os.listdir(wiki_dir)):
+            if os.path.isdir(os.path.join(wiki_dir, entry)) and not entry.startswith('.'):
+                cats.append(entry)
+    except OSError:
+        pass
+    return cats
+
+
+def build_category_map(categories):
+    """Assign a color from PALETTE to each category."""
+    color_map = {}
+    for i, cat in enumerate(categories):
+        color_map[cat] = PALETTE[i % len(PALETTE)]
+    color_map["root"] = FALLBACK_COLOR
+    return color_map
+
+
 def sync(wiki_dir, output_path):
     """Main sync: read all .md, parse, resolve links, generate data.json."""
     if not os.path.isdir(wiki_dir):
@@ -152,6 +183,9 @@ def sync(wiki_dir, output_path):
         sys.exit(1)
 
     print(f"Trovati {len(md_files)} file .md")
+
+    detected_categories = detect_categories(wiki_dir)
+    category_colors = build_category_map(detected_categories)
 
     # Parse all pages
     pages = []
@@ -221,12 +255,14 @@ def sync(wiki_dir, output_path):
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
 
+    all_cats = detected_categories if detected_categories else sorted(set(p['category'] for p in pages if p['category'] != 'root'))
     data = {
         'pages': pages,
+        'categories': {cat: category_colors.get(cat, FALLBACK_COLOR) for cat in all_cats},
         'stats': {
             'total_pages': len(pages),
             'total_links': sum(len(p['links']) for p in pages),
-            'categories': {cat: sum(1 for p in pages if p['category'] == cat) for cat in CATEGORY_ORDER},
+            'categories': {cat: sum(1 for p in pages if p['category'] == cat) for cat in all_cats},
         }
     }
 
@@ -242,9 +278,10 @@ def sync(wiki_dir, output_path):
 
     print(f"Generato {json_path}: {len(pages)} pagine, {data['stats']['total_links']} link")
     print(f"Generato {js_path} (file:// compatibile)")
-    for cat, count in data['stats']['categories'].items():
+    for cat in all_cats:
+        count = data['stats']['categories'].get(cat, 0)
         if count > 0:
-            print(f"  {cat}: {count}")
+            print(f"  {cat}: {count} ({category_colors.get(cat, FALLBACK_COLOR)})")
 
 
 if __name__ == '__main__':

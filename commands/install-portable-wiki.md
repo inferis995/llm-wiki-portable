@@ -11,9 +11,17 @@ Installa e configura LLM Wiki Portable su USB o directory locale.
 
 Chiedi all'utente:
 
-**Percorso di destinazione della wiki:**
+**1. Percorso di destinazione della wiki:**
 `"Dove vuoi installare la wiki portable? (es. D:\, E:\, /media/usb, ~/wiki-portable)"`
 Salva come `TARGET` (usa sempre forward slash, es. `D:/wiki-portable`).
+
+**2. Template:**
+`"Che uso vuoi farne?"`
+- **personal** — Studio, note, ricerca personale (`sources / entities / concepts / comparisons`)
+- **work** — Progetti e clienti (`projects / clients / meetings / tasks / resources`)
+- **business** — Knowledge aziendale (`departments / processes / people / decisions / documents / meetings`)
+
+Salva come `TEMPLATE` = `"personal"`, `"work"` o `"business"`.
 
 ---
 
@@ -26,6 +34,7 @@ Controlla se esiste già una wiki:
 
 **Se TUTTI esistono → "Configura su nuovo PC"** (wiki già sull'USB, nuovo PC)
 - Vai a Step 4 → Step 5 → Step 6
+- (TEMPLATE viene usato solo per aggiornare CLAUDE.md se non esiste già)
 
 **Se mancano → "Prima installazione"**
 Chiedi: nuova wiki vuota o importa wiki esistente?
@@ -41,21 +50,47 @@ Il template (web/, sync.py, templates/) si trova nel repo clonato. Trovalo così
    - `~/portable-wiki/`
    - `~/Desktop/llm-wiki-portable/`
    - directory corrente
-2. Cerca `sync.py` + `web/index.html` + `templates/CLAUDE.md` insieme.
+2. Cerca `sync.py` + `web/index.html` + `templates/personal/CLAUDE.md` insieme.
 3. Se non trovi: chiedi `"Dove hai clonato il repo llm-wiki-portable? (path della cartella)"`
 
 Salva come `TEMPLATE_SRC`.
+Il path del template scelto è `{TEMPLATE_SRC}/templates/{TEMPLATE}/`.
 
 ---
 
 ## Step 3: Crea struttura (solo prima installazione)
 
-Crea le directory:
+Le cartelle dipendono dal template scelto:
+
+**personal:**
 ```
 {TARGET}/wiki/sources/
 {TARGET}/wiki/entities/
 {TARGET}/wiki/concepts/
 {TARGET}/wiki/comparisons/
+```
+
+**work:**
+```
+{TARGET}/wiki/projects/
+{TARGET}/wiki/clients/
+{TARGET}/wiki/meetings/
+{TARGET}/wiki/tasks/
+{TARGET}/wiki/resources/
+```
+
+**business:**
+```
+{TARGET}/wiki/departments/
+{TARGET}/wiki/processes/
+{TARGET}/wiki/people/
+{TARGET}/wiki/decisions/
+{TARGET}/wiki/documents/
+{TARGET}/wiki/meetings/
+```
+
+**Sempre (tutti i template):**
+```
 {TARGET}/raw/assets/
 {TARGET}/web/lib/
 ```
@@ -70,12 +105,8 @@ Crea le directory:
   ---
 
   # Wiki Index
-
-  ## Sources
-  ## Entities
-  ## Concepts
-  ## Comparisons
   ```
+  (aggiungi una sezione `##` per ogni cartella del template scelto)
 - Crea `{TARGET}/wiki/log.md`:
   ```markdown
   # Wiki Log
@@ -102,7 +133,7 @@ Copia da `{TEMPLATE_SRC}/`:
 
 ### 4a. Genera `~/.claude/CLAUDE.md` (globale)
 
-Leggi il template da `{TEMPLATE_SRC}/templates/CLAUDE.md`.
+Leggi il template da `{TEMPLATE_SRC}/templates/{TEMPLATE}/CLAUDE.md`.
 Sostituisci **tutte** le occorrenze di `{wiki-root}` con `{TARGET}` (forward slash).
 Scrivi il contenuto in `~/.claude/CLAUDE.md`.
 Scrivi anche una copia in `{TARGET}/CLAUDE.md` come backup sull'USB.
@@ -110,14 +141,14 @@ Scrivi anche una copia in `{TARGET}/CLAUDE.md` come backup sull'USB.
 ### 4b. Genera `~/.config/opencode/agents/wiki.md` (globale)
 
 Crea la directory `~/.config/opencode/agents/` se non esiste.
-Leggi il template da `{TEMPLATE_SRC}/templates/AGENTS.md`.
+Leggi il template da `{TEMPLATE_SRC}/templates/{TEMPLATE}/AGENTS.md`.
 Sostituisci **tutte** le occorrenze di `{wiki-root}` con `{TARGET}` (forward slash).
 
 Scrivi il file con questo frontmatter aggiunto in cima:
 
 ```markdown
 ---
-description: LLM Wiki Portable — knowledge base su {TARGET}
+description: LLM Wiki Portable ({TEMPLATE}) — {TARGET}
 mode: subagent
 tools:
   write: true
@@ -171,6 +202,7 @@ Se Python non è disponibile: avvisa l'utente che dovrà eseguire sync.py manual
 ✅ Setup completato
 
 Target:     {TARGET}
+Template:   {TEMPLATE}
 Pagine:     {N} pagine, {L} link
 CLAUDE.md:  ~/.claude/CLAUDE.md creato (globale)
 OpenCode:   ~/.config/opencode/agents/wiki.md creato
