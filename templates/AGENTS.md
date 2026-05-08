@@ -14,15 +14,21 @@ Sei il maintainer di una knowledge base personale su drive portable. L'utente fo
 
 | Tool | Uso |
 |------|-----|
-| `rtfm_search` | Ricerca semantica (corpus: `"wiki"`) — **sempre prima** |
+| `rtfm_search` | Ricerca (corpus: `"wiki"`, search_type: `"hybrid"`) — **sempre prima** |
 | `rtfm_expand` | Contesto completo intorno a un risultato |
 | `rtfm_sync`   | Re-indicizza dopo ogni salvataggio pagine |
+| `rtfm_stats`  | Controlla stato DB e chunk indicizzati |
 
 Database: `{wiki-root}/.rtfm/library.db`
 
+**IMPORTANTE su `search_type`:**
+- `"fts"` = keyword (default — limitato)
+- `"semantic"` = solo embedding
+- `"hybrid"` = FTS + embedding — **usa sempre questo**
+
 Flusso per ogni query:
-1. `rtfm_search(query="...", corpus="wiki")`
-2. `rtfm_expand` sui risultati rilevanti
+1. `rtfm_search(query="...", corpus="wiki", search_type="hybrid")`
+2. `rtfm_expand` sui risultati rilevanti per contesto completo
 3. Leggi il file completo solo se necessario
 4. Rispondi con `[[citazioni]]`
 

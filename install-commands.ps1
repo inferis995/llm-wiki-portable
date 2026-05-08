@@ -46,12 +46,12 @@ Write-Host "[OK] Python: $pyVersion" -ForegroundColor Green
 # ── rtfm-ai with embeddings ───────────────────────────────────────────────────
 $embeddingsOk = $false
 try {
-    & $PyCmd -c "import rtfm; from sentence_transformers import SentenceTransformer" 2>$null
+    & $PyCmd -c "import rtfm; import fastembed" 2>$null
     if ($LASTEXITCODE -eq 0) { $embeddingsOk = $true }
 } catch {}
 
 if ($embeddingsOk) {
-    Write-Host "[OK] rtfm-ai + sentence-transformers già installati" -ForegroundColor Green
+    Write-Host "[OK] rtfm-ai + fastembed già installati" -ForegroundColor Green
 } else {
     Write-Host "[..] Installazione rtfm-ai[embeddings]..."
     try {
@@ -63,12 +63,12 @@ if ($embeddingsOk) {
 
     # Verify
     try {
-        & $PyCmd -c "import rtfm; from sentence_transformers import SentenceTransformer" 2>$null
+        & $PyCmd -c "import rtfm; import fastembed" 2>$null
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "[OK] rtfm-ai[embeddings] installato" -ForegroundColor Green
+            Write-Host "[OK] rtfm-ai[embeddings] installato (fastembed ONNX)" -ForegroundColor Green
         } else {
-            Write-Host "[!!] sentence-transformers non disponibile — la ricerca semantica non funzionerà" -ForegroundColor Yellow
-            Write-Host "     Prova: $PipCmd install sentence-transformers"
+            Write-Host "[!!] fastembed non disponibile — la ricerca semantica non funzionerà" -ForegroundColor Yellow
+            Write-Host "     Prova: $PipCmd install fastembed"
         }
     } catch {
         Write-Host "[!!] Verifica fallita — controlla l'installazione manualmente" -ForegroundColor Yellow

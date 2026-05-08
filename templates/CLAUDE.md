@@ -30,16 +30,22 @@ Sei il maintainer di una knowledge base personale su drive portable.
 
 | Tool | Uso |
 |------|-----|
-| `rtfm_search` | Ricerca semantica (corpus: `"wiki"`) — **sempre prima** |
+| `rtfm_search` | Ricerca (corpus: `"wiki"`, search_type: `"hybrid"`) — **sempre prima** |
 | `rtfm_expand` | Contesto completo intorno a un risultato |
 | `rtfm_sync`   | Re-indicizza dopo ogni salvataggio pagine |
+| `rtfm_stats`  | Controlla stato DB e numero chunk indicizzati |
 
 Database: `{wiki-root}/.rtfm/library.db`
 
+**IMPORTANTE su `search_type`:**
+- `"fts"` = keyword search (default, ma limitato)
+- `"semantic"` = solo embedding
+- `"hybrid"` = FTS + embedding combinati — **usa sempre questo**
+
 **Flusso standard per ogni query:**
 ```
-1. rtfm_search(query="...", corpus="wiki")
-2. rtfm_expand sui risultati rilevanti
+1. rtfm_search(query="...", corpus="wiki", search_type="hybrid")
+2. rtfm_expand sui risultati rilevanti per contesto completo
 3. Leggi il file completo solo se serve maggiore contesto
 4. Rispondi con [[citazioni]]
 ```
@@ -63,7 +69,7 @@ Database: `{wiki-root}/.rtfm/library.db`
 
 ### Query (l'utente fa una domanda)
 
-1. `rtfm_search(query="...", corpus="wiki")` — **sempre primo**
+1. `rtfm_search(query="...", corpus="wiki", search_type="hybrid")` — **sempre primo**
 2. `rtfm_expand` sui risultati migliori per contesto completo
 3. Leggi pagine specifiche se necessario
 4. Sintetizza la risposta con `[[citazioni]]`

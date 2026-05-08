@@ -45,9 +45,9 @@ echo "[OK] Python: $($PY_CMD --version 2>&1)"
 
 # ── rtfm-ai with embeddings ───────────────────────────────────────────────────
 EMBEDDINGS_OK=false
-if $PY_CMD -c "import rtfm; from sentence_transformers import SentenceTransformer" 2>/dev/null; then
+if $PY_CMD -c "import rtfm; import fastembed" 2>/dev/null; then
   EMBEDDINGS_OK=true
-  echo "[OK] rtfm-ai + sentence-transformers già installati"
+  echo "[OK] rtfm-ai + fastembed già installati"
 fi
 
 if [ "$EMBEDDINGS_OK" = false ]; then
@@ -58,11 +58,11 @@ if [ "$EMBEDDINGS_OK" = false ]; then
   }
 
   # Verify
-  if $PY_CMD -c "import rtfm; from sentence_transformers import SentenceTransformer" 2>/dev/null; then
-    echo "[OK] rtfm-ai[embeddings] installato"
+  if $PY_CMD -c "import rtfm; import fastembed" 2>/dev/null; then
+    echo "[OK] rtfm-ai[embeddings] installato (fastembed ONNX)"
   else
-    echo "[!!] sentence-transformers non disponibile — la ricerca semantica non funzionerà"
-    echo "     Prova: $PIP_CMD install sentence-transformers"
+    echo "[!!] fastembed non disponibile — la ricerca semantica non funzionerà"
+    echo "     Prova: $PIP_CMD install fastembed"
   fi
 fi
 

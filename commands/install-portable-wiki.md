@@ -115,9 +115,11 @@ Su Windows usa `python` e `pip` (o `python -m pip`).
 
 ### 4b. Installa rtfm-ai con embeddings
 
-Controlla se embeddings già disponibili:
+rtfm-ai usa **fastembed** (ONNX, no GPU) per la ricerca semantica — NON sentence-transformers.
+
+Controlla se già installato:
 ```bash
-{PY_CMD} -c "import rtfm; from sentence_transformers import SentenceTransformer; print('ok')"
+{PY_CMD} -c "import rtfm; import fastembed; print('ok')"
 ```
 
 Se fallisce, installa:
@@ -125,73 +127,111 @@ Se fallisce, installa:
 {PIP_CMD} install "rtfm-ai[embeddings]"
 ```
 
-Verifica di nuovo dopo l'installazione. Se ancora fallisce:
+Verifica dopo l'installazione:
 ```bash
-{PIP_CMD} install sentence-transformers
+{PY_CMD} -c "import rtfm; import fastembed; print('ok')"
 ```
 
-Se dopo tutto ancora fallisce, continua ma avvisa: "Ricerca semantica non disponibile — rtfm userà keyword search."
-
-### 4c. Crea indice RTFM
-
-Crea la directory `{TARGET}/.rtfm/`.
-
-Crea `{TARGET}/.rtfm/config.json`:
-```json
-{
-  "sources": [
-    {
-      "path": "{TARGET}/wiki",
-      "corpus": "wiki",
-      "extensions": ".md"
-    }
-  ]
-}
-```
-Usa forward slash anche su Windows.
-
-Esegui la prima indicizzazione:
-
-**Linux/macOS:**
+Se ancora fallisce:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" {PY_CMD} -m rtfm.cli sync --force
+{PIP_CMD} install fastembed
 ```
 
-**Windows (cmd):**
-```cmd
-set RTFM_DB={TARGET}/.rtfm/library.db && {PY_CMD} -m rtfm.cli sync --force
-```
+Se dopo tutto ancora fallisce, continua ma avvisa: "Ricerca semantica non disponibile — rtfm userà keyword FTS."
 
-**Windows (PowerShell):**
+### 4c. Inizializza e indicizza
+
+**1. Inizializza il DB:**
+
+Linux/macOS:
+```bash
+RTFM_DB="{TARGET}/.rtfm/library.db" rtfm init
+```
+Windows (PowerShell):
 ```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; {PY_CMD} -m rtfm.cli sync --force
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm init
 ```
 
-Riporta il numero di chunk indicizzati. Se 0 chunk e ci sono pagine .md, controlla il path.
+**2. Registra la wiki come fonte:**
 
-### 4d. Verifica che la ricerca funzioni
-
-Esegui un test concreto:
-
-**Linux/macOS:**
+Linux/macOS:
 ```bash
-RTFM_DB="{TARGET}/.rtfm/library.db" {PY_CMD} -m rtfm.cli search "wiki"
+RTFM_DB="{TARGET}/.rtfm/library.db" rtfm add "{TARGET}/wiki" --corpus wiki --extensions md
 ```
-
-**Windows (PowerShell):**
+Windows (PowerShell):
 ```powershell
-$env:RTFM_DB="{TARGET}/.rtfm/library.db"; {PY_CMD} -m rtfm.cli search "wiki"
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm add "{TARGET}/wiki" --corpus wiki --extensions md
 ```
 
-Se ottieni risultati → "Ricerca semantica funzionante!"
-Se errore → diagnostica:
-- DB non trovato: controlla il path `{TARGET}/.rtfm/library.db`
-- `ModuleNotFoundError`: reinstalla con `{PIP_CMD} install "rtfm-ai[embeddings]"`
-- Nessun risultato ma ci sono pagine: rirunna il sync con `--force`
+**3. Indicizza i file (FTS):**
+
+Linux/macOS:
+```bash
+RTFM_DB="{TARGET}/.rtfm/library.db" rtfm sync
+```
+Windows (PowerShell):
+```powershell
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm sync
+```
+
+Riporta il numero di chunk indicizzati.
+
+**4. Genera gli embedding (ricerca semantica):**
+
+Questo passo è OBBLIGATORIO — senza di esso la ricerca semantica non funziona.
+
+Linux/macOS:
+```bash
+RTFM_DB="{TARGET}/.rtfm/library.db" rtfm embed
+```
+Windows (PowerShell):
+```powershell
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm embed
+```
+
+Alla prima esecuzione scarica il modello `paraphrase-multilingual-MiniLM-L12-v2` (~90 MB). Attendi il completamento.
+
+Se `rtfm embed` non esiste (versione vecchia): installa la versione più recente con `{PIP_CMD} install -U "rtfm-ai[embeddings]"`.
+
+### 4d. Verifica FTS e ricerca semantica
+
+**Test keyword (FTS):**
+
+Linux/macOS:
+```bash
+RTFM_DB="{TARGET}/.rtfm/library.db" rtfm search "wiki"
+```
+Windows (PowerShell):
+```powershell
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm search "wiki"
+```
+
+**Test semantico (embedding):**
+
+Linux/macOS:
+```bash
+RTFM_DB="{TARGET}/.rtfm/library.db" rtfm semantic-search "wiki"
+```
+Windows (PowerShell):
+```powershell
+$env:RTFM_DB="{TARGET}/.rtfm/library.db"; rtfm semantic-search "wiki"
+```
+
+Se FTS funziona ma semantica no → `rtfm embed` non completato, riprova.
+Se ModuleNotFoundError → `{PIP_CMD} install "rtfm-ai[embeddings]"` e riavvia.
+Se 0 risultati con pagine presenti → controlla il path con `rtfm stats`.
 
 ### 4e. Configura MCP in Claude Code
 
 **IMPORTANTE: il file corretto è `~/.claude/settings.json`, NON `mcp.json`.**
+
+Cerca il path di `rtfm-serve` (entry point ufficiale):
+```bash
+which rtfm-serve        # Linux/macOS
+where rtfm-serve        # Windows
+```
+
+Usa `rtfm-serve` come comando MCP se trovato, altrimenti fallback a `{PY_CMD} -m rtfm.mcp`.
 
 Leggi `~/.claude/settings.json` (crea `{}` se non esiste). Aggiungi/aggiorna la chiave `mcpServers.rtfm`:
 
@@ -199,8 +239,8 @@ Leggi `~/.claude/settings.json` (crea `{}` se non esiste). Aggiungi/aggiorna la 
 {
   "mcpServers": {
     "rtfm": {
-      "command": "{PY_CMD}",
-      "args": ["-m", "rtfm.mcp"],
+      "command": "rtfm-serve",
+      "args": [],
       "env": {
         "RTFM_DB": "{TARGET}/.rtfm/library.db",
         "RTFM_MCP_PROFILE": "admin"
@@ -214,17 +254,18 @@ Usa sempre forward slash nel path anche su Windows (es. `D:/.rtfm/library.db`).
 
 Scrivi il file aggiornato (merge — non sovrascrivere altre chiavi).
 
-Usa questo snippet Python per la scrittura sicura:
+Usa questo snippet Python per la scrittura sicura (sostituisci `{RTFM_SERVE}` con il path trovato sopra o `"rtfm-serve"`):
 ```python
-import json, os
+import json, os, shutil
 path = os.path.expanduser("~/.claude/settings.json")
+rtfm_serve = shutil.which("rtfm-serve") or "rtfm-serve"
 data = {}
 if os.path.exists(path):
     with open(path) as f:
         data = json.load(f)
 data.setdefault("mcpServers", {})["rtfm"] = {
-    "command": "{PY_CMD}",
-    "args": ["-m", "rtfm.mcp"],
+    "command": rtfm_serve,
+    "args": [],
     "env": {
         "RTFM_DB": "{TARGET}/.rtfm/library.db",
         "RTFM_MCP_PROFILE": "admin"
@@ -232,7 +273,7 @@ data.setdefault("mcpServers", {})["rtfm"] = {
 }
 with open(path, "w") as f:
     json.dump(data, f, indent=2)
-print("settings.json aggiornato")
+print(f"settings.json aggiornato (command: {rtfm_serve})")
 ```
 
 ### 4f. Configura MCP in OpenCode
@@ -308,11 +349,14 @@ Sei il maintainer di una knowledge base personale su drive portable.
 
 | Tool | Uso |
 |------|-----|
-| `rtfm_search` | Cerca (corpus: `"wiki"`) — SEMPRE PRIMA |
-| `rtfm_expand` | Ottieni contesto completo intorno a un risultato |
+| `rtfm_search` | Cerca (corpus: `"wiki"`, search_type: `"hybrid"`) — SEMPRE PRIMA |
+| `rtfm_expand` | Contesto completo intorno a un risultato |
 | `rtfm_sync`   | Re-indicizza dopo ogni salvataggio |
+| `rtfm_stats`  | Controlla stato DB |
 
 Database: `{TARGET}/.rtfm/library.db`
+
+**search_type**: usa sempre `"hybrid"` (FTS + embedding). Default `"fts"` è solo keyword.
 
 ## Operazioni
 
@@ -330,7 +374,7 @@ Database: `{TARGET}/.rtfm/library.db`
 8. Esegui: `rtfm_sync` (re-indicizza)
 
 ### Query (l'utente fa una domanda)
-1. `rtfm_search(query, corpus="wiki")` — **sempre primo**
+1. `rtfm_search(query="...", corpus="wiki", search_type="hybrid")` — **sempre primo**
 2. `rtfm_expand` sui risultati migliori per contesto completo
 3. Leggi pagine specifiche se necessario
 4. Rispondi con `[[citazioni]]`
