@@ -14,19 +14,19 @@
   <img src="https://img.shields.io/badge/works%20offline-yes-success" alt="Offline">
 </p>
 
-Your personal AI-powered knowledge base on a USB stick.
+Your personal AI-powered knowledge base — on a USB stick or any folder.
 
-A portable wiki that works with **Claude Code** and **OpenCode**. Write markdown pages with `[[wikilinks]]`, see them as an interactive 3D graph, and carry it all on a USB drive. No server, no install, no cloud.
+Works with **Claude Code** and **OpenCode**. Write markdown pages with `[[wikilinks]]`, visualize them as a 3D graph, and carry everything on a USB drive. Ask Claude to ingest sources, query your knowledge base with semantic search, and generate new pages automatically.
 
 ## Features
 
-- **3D Knowledge Graph** — See your wiki as an interactive force-directed graph in the browser
-- **USB Portable** — Everything runs from a USB stick, no installation needed
-- **AI-Powered** — Claude Code or OpenCode manage the wiki for you
-- **Markdown + Wikilinks** — Write in standard markdown with `[[page-links]]` like Obsidian
-- **Semantic Search** — RTFM MCP for searching your knowledge base
-- **Zero Dependencies** — Static HTML/JS, works with `file://` protocol, offline
-- **Works Everywhere** — Plug USB into any PC, run install skill, done
+- **3D Knowledge Graph** — Interactive force-directed graph, color-coded by category
+- **Semantic Search** — RTFM MCP with embeddings (hybrid FTS + vector search)
+- **AI-Powered** — Claude Code or OpenCode read, write, and query the wiki for you
+- **USB Portable** — Plug into any PC, run one command, done
+- **Markdown + Wikilinks** — `[[page-links]]` like Obsidian, backlinks auto-generated
+- **Offline** — Static HTML/JS, works with `file://`, no server needed
+- **Python 3.8+** — No external dependencies for the core; `rtfm-ai` installed automatically
 
 ## Dashboard
 
@@ -34,23 +34,30 @@ A portable wiki that works with **Claude Code** and **OpenCode**. Write markdown
   <img src="docs/dashboard.webp" alt="Dashboard — 3D Knowledge Graph with sidebar navigation" width="700">
 </p>
 
-Interactive 3D force-directed graph with color-coded categories (sources, entities, concepts, comparisons). Click any node to read the page. Sidebar with search and category navigation.
+Interactive 3D graph with color-coded categories: **Fonti** (blue), **Entità** (green), **Concetti** (amber), **Confronti** (purple), **Clippings** (pink). Click any node to read the page. Sidebar with live search (searches titles, tags, and content). Keyboard: `/` to search, `Esc` to go back.
 
 ## Quick Start
 
-### 1. Install commands
+### Step 1 — Clone the repo
+
+```bash
+git clone https://github.com/inferis995/llm-wiki-portable
+cd llm-wiki-portable
+```
+
+### Step 2 — Install commands
 
 ```bash
 # Linux / macOS
 bash install-commands.sh
 
-# Windows
+# Windows (PowerShell)
 powershell -File install-commands.ps1
 ```
 
-Or manually copy files from `commands/` to `~/.claude/commands/`.
+This copies the slash commands to Claude Code and OpenCode, and installs `rtfm-ai[embeddings]` for semantic search.
 
-### 2. Install on USB
+### Step 3 — Set up your wiki
 
 Open **Claude Code** or **OpenCode** and run:
 
@@ -58,7 +65,11 @@ Open **Claude Code** or **OpenCode** and run:
 /install-portable-wiki
 ```
 
-Follow the prompts — point to your USB drive, choose new or import existing wiki.
+Claude will ask:
+1. **Where** to put the wiki (USB drive path or any folder)
+2. **Which mode:**
+   - **Classica** — Wiki + 3D graph UI only. No MCP, no semantic search.
+   - **Completa** — Everything above + RTFM MCP semantic search + global `~/.claude/CLAUDE.md` so Claude finds your wiki from any directory.
 
 <details>
 <summary>OpenCode with commands</summary>
@@ -69,46 +80,53 @@ Follow the prompts — point to your USB drive, choose new or import existing wi
 
 </details>
 
-### 3. Use it
+### Step 4 — Use it
 
 ```
 /llm-dashboard    ← Open the 3D graph in your browser
 ```
 
-Then just talk to Claude — ask it to ingest sources, query your wiki, or add pages. Claude reads and writes markdown files on the USB automatically.
+Then talk to Claude:
+- *"Ingest this PDF"* → Claude creates wiki pages with wikilinks
+- *"What do I know about Docker networking?"* → Claude searches and answers with citations
+- *"Show me everything related to [[kubernetes]]"* → Claude reads the graph
+
+> **After setup (Completa mode):** Claude finds your wiki from **any directory** — you don't need to open a terminal in the wiki folder. The global `~/.claude/CLAUDE.md` points to your USB/folder path.
 
 ## How It Works
 
 ```
-USB Drive/
-├── wiki/           ← Your pages (markdown with wikilinks)
-│   ├── sources/    ← Source summaries
-│   ├── entities/   ← Things (tools, companies, people)
-│   ├── concepts/   ← Ideas (protocols, patterns)
-│   └── comparisons/← A vs B
-├── raw/            ← Original files (PDFs, images)
-├── web/            ← Static web UI (open index.html)
-│   └── data.js     ← Auto-generated by sync.py
-├── sync.py         ← Generates graph data from markdown
-├── CLAUDE.md       ← Instructions for Claude Code
-└── AGENTS.md       ← Instructions for OpenCode
+~/.claude/CLAUDE.md          ← Global AI instructions (points to your USB path)
+~/.config/opencode/agents/wiki.md  ← OpenCode global agent
+
+USB Drive (or any folder)/
+├── wiki/                    ← Your pages (markdown with wikilinks)
+│   ├── sources/src-*.md     ← Source summaries
+│   ├── entities/            ← Tools, companies, people
+│   ├── concepts/            ← Ideas, protocols, patterns
+│   ├── comparisons/         ← A vs B
+│   └── clippings/           ← Quick notes and clippings
+├── raw/                     ← Original files (PDFs, images) — never modified
+├── web/                     ← Static web UI (open index.html in browser)
+│   └── data.js              ← Auto-generated by sync.py
+├── .rtfm/library.db         ← Semantic search database (Completa mode)
+└── sync.py                  ← Regenerates graph data from markdown
 ```
 
 ### The Workflow
 
-1. **You give Claude a source** (PDF, URL, file)
-2. **Claude creates wiki pages** with `[[wikilinks]]`
-3. **Claude runs `sync.py`** to update the graph
-4. **You open `/llm-dashboard`** to see the 3D graph
-5. **You ask Claude questions** — it searches the wiki and answers with citations
+1. **You give Claude a source** (PDF, URL, paste text)
+2. **Claude creates wiki pages** with `[[wikilinks]]` and cross-references
+3. **Claude runs `sync.py`** to rebuild the graph
+4. **Claude re-indexes** with RTFM (`rtfm_sync`) for semantic search
+5. **You open `/llm-dashboard`** to see the 3D graph
+6. **You ask questions** — Claude searches with embeddings and answers with `[[citations]]`
 
 ### Moving to Another PC
 
-Just plug the USB into a new computer, open Claude Code or OpenCode, run `/install-portable-wiki`. The skill detects the existing wiki and only configures the local system (MCP, commands, CLAUDE.md). Your data stays on the USB.
+Plug the USB into a new computer → open Claude Code or OpenCode → run `/install-portable-wiki`. The command detects the existing wiki and only configures the local system (MCP, global CLAUDE.md, commands). Your data stays on the USB.
 
 ## Page Format
-
-Every page uses this format:
 
 ```markdown
 ---
@@ -131,25 +149,37 @@ Content with [[wikilinks]] to other pages.
 
 ## Requirements
 
-- **Claude Code** or **OpenCode** (AI coding assistant)
-- **Python 3** (for `sync.py` and RTFM MCP)
-- **USB drive** (or any directory)
-- A browser (for the 3D graph)
+| Requirement | Notes |
+|-------------|-------|
+| **Claude Code** or **OpenCode** | AI assistant that runs the commands |
+| **Python 3.8+** | For `sync.py` and RTFM MCP |
+| **pip** | `rtfm-ai[embeddings]` installed automatically by `install-commands.sh` |
+| **USB drive or folder** | Any writable path works |
+| **Browser** | For the 3D graph UI |
+
+> Python and pip must be in your system PATH before running `install-commands.sh`.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `/install-portable-wiki` | Install or configure wiki on USB |
-| `/llm-dashboard` | Open the 3D graph in browser (auto-syncs) |
+| `/install-portable-wiki` | Install wiki on USB or configure on a new PC |
+| `/llm-dashboard` | Open the 3D graph in browser (auto-syncs if pages changed) |
+
+## Modes
+
+| Mode | What you get |
+|------|-------------|
+| **Classica** | Wiki + 3D graph UI + slash commands. No MCP. |
+| **Completa** | Everything in Classica + RTFM MCP semantic search + global `~/.claude/CLAUDE.md` + OpenCode `@wiki` agent |
 
 ## Tech Stack
 
 - **Web UI**: Vanilla HTML/CSS/JS (no framework, no build step)
 - **Graph**: [3d-force-graph](https://github.com/vasturiano/3d-force-graph) + Three.js + D3.js
 - **Markdown**: [marked.js](https://marked.js.org/)
-- **Search**: [RTFM MCP](https://github.com/roomi-fields/rtfm)
-- **Sync**: Python script (zero dependencies)
+- **Semantic Search**: [RTFM MCP](https://github.com/roomi-fields/rtfm) with fastembed ONNX
+- **Sync**: `sync.py` — zero dependencies, Python 3.8+
 
 ## License
 

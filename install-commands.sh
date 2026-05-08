@@ -18,8 +18,9 @@ echo "[OK] Claude Code commands: /install-portable-wiki  /llm-dashboard"
 # ── OpenCode commands ──────────────────────────────────────────────────────────
 OPENCODE_DIR="$HOME/.config/opencode/commands"
 mkdir -p "$OPENCODE_DIR"
+cp "$SCRIPT_DIR/commands/install-portable-wiki.md" "$OPENCODE_DIR/"
 cp "$SCRIPT_DIR/commands/llm-dashboard.md" "$OPENCODE_DIR/"
-echo "[OK] OpenCode commands: /llm-dashboard"
+echo "[OK] OpenCode commands: /install-portable-wiki  /llm-dashboard"
 
 # ── Python detection ───────────────────────────────────────────────────────────
 PY_CMD=""

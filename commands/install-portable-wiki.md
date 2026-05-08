@@ -1,3 +1,8 @@
+---
+description: Install or configure LLM Wiki Portable on a USB drive or local directory
+agent: build
+---
+
 Installa e configura LLM Wiki Portable su USB o directory locale, con MCP RTFM e ricerca semantica funzionante al 100%.
 
 ---

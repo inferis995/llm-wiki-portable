@@ -16,8 +16,9 @@ Write-Host "[OK] Claude Code commands: /install-portable-wiki  /llm-dashboard" -
 # ── OpenCode commands ──────────────────────────────────────────────────────────
 $OpenCodeDir = "$env:USERPROFILE\.config\opencode\commands"
 New-Item -ItemType Directory -Force -Path $OpenCodeDir | Out-Null
+Copy-Item "$ScriptDir\commands\install-portable-wiki.md" $OpenCodeDir -Force
 Copy-Item "$ScriptDir\commands\llm-dashboard.md" $OpenCodeDir -Force
-Write-Host "[OK] OpenCode commands: /llm-dashboard" -ForegroundColor Green
+Write-Host "[OK] OpenCode commands: /install-portable-wiki  /llm-dashboard" -ForegroundColor Green
 
 # ── Python detection ───────────────────────────────────────────────────────────
 $PyCmd = $null
