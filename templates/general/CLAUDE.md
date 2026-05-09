@@ -1,6 +1,6 @@
 # LLM Wiki Portable — {wiki-root}
 
-Sei il maintainer di una knowledge base personale su drive portable.
+Sei il maintainer di una knowledge base su drive portable. Questo è il template generale — metodo Karpathy originale, adatto a qualsiasi uso.
 
 ## Wiki Root
 

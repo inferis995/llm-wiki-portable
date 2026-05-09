@@ -17,13 +17,14 @@ Salva come `TARGET` (usa sempre forward slash, es. `D:/wiki-portable`).
 
 **2. Template:**
 `"Che uso vuoi farne?"`
-- **personal** — Studio, note, ricerca personale (`sources / entities / concepts / comparisons`)
+- **general** — Uso generico, studio, note, ricerca personale — metodo Karpathy originale (`sources / entities / concepts / comparisons`)
 - **work** — Progetti e clienti (`projects / clients / meetings / tasks / resources`)
 - **business** — Knowledge aziendale (`departments / processes / people / decisions / documents / meetings`)
-- **professional** — Avvocato, commercialista, consulente, medico (`clients / matters / deadlines / contacts / notes`)
-- **research** — Ricercatore, giornalista, studente PhD, analista (`sources / notes / topics / people / output`)
+- **professional** — Avvocato, commercialista, consulente, medico (`clients / matters / deadlines / contacts`)
+- **research** — Ricercatore, giornalista, studente PhD, analista (`sources / insights / topics / people / output`)
+- **custom** — Crea un template personalizzato per il tuo caso d'uso specifico
 
-Salva come `TEMPLATE` = `"personal"`, `"work"`, `"business"`, `"professional"` o `"research"`.
+Salva come `TEMPLATE` = `"general"`, `"work"`, `"business"`, `"professional"`, `"research"` o `"custom"`.
 
 ---
 
@@ -52,7 +53,7 @@ Il template (web/, sync.py, templates/) si trova nel repo clonato. Trovalo così
    - `~/portable-wiki/`
    - `~/Desktop/llm-wiki-portable/`
    - directory corrente
-2. Cerca `sync.py` + `web/index.html` + `templates/personal/CLAUDE.md` insieme.
+2. Cerca `sync.py` + `web/index.html` + `templates/general/CLAUDE.md` insieme.
 3. Se non trovi: chiedi `"Dove hai clonato il repo llm-wiki-portable? (path della cartella)"`
 
 Salva come `TEMPLATE_SRC`.
@@ -64,7 +65,7 @@ Il path del template scelto è `{TEMPLATE_SRC}/templates/{TEMPLATE}/`.
 
 Le cartelle dipendono dal template scelto:
 
-**personal:**
+**general:**
 ```
 {TARGET}/wiki/sources/
 {TARGET}/wiki/entities/
@@ -107,6 +108,25 @@ Le cartelle dipendono dal template scelto:
 {TARGET}/wiki/people/
 {TARGET}/wiki/output/
 ```
+
+**custom** — se TEMPLATE è `"custom"`, prima di creare le cartelle:
+
+Fai 3 domande all'utente:
+1. `"Che tipo di lavoro gestisce questa wiki? (es. studio, agenzia, studio legale, officina, laboratorio...)"` → salva come `CUSTOM_TYPE`
+2. `"Elenca 5-7 cose che gestisci quotidianamente (es. clienti, progetti, fatture, macchine, esperimenti...)"` → salva come `CUSTOM_ITEMS` (lista)
+3. `"C'è una terminologia specifica del tuo settore che vuoi usare? (opzionale)"` → salva come `CUSTOM_TERMS`
+
+Poi genera il template su misura:
+- Deriva 4-6 cartelle dai `CUSTOM_ITEMS` (nomi brevi, snake_case)
+- Genera un prefisso 3-4 lettere per ogni cartella (es. `cli-`, `prj-`, `doc-`)
+- Crea le cartelle in `{TARGET}/wiki/`
+- Genera `{TARGET}/templates-custom/CLAUDE.md`:
+  - Header: "Sei il knowledge manager di una wiki per {CUSTOM_TYPE}."
+  - CRITICO: elenca le cartelle e i prefissi obbligatori
+  - Sezioni: Ingest, Query, Lint — stesso metodo Karpathy degli altri template
+  - Convenzioni specifiche per il settore (usa `CUSTOM_TERMS` se forniti)
+- Genera `{TARGET}/templates-custom/AGENTS.md` (stessa struttura, versione compatta)
+- Usa questi file come `{TEMPLATE_SRC}/templates/custom/CLAUDE.md` e `AGENTS.md` per gli step 4a e 4b
 
 **Sempre (tutti i template):**
 ```
