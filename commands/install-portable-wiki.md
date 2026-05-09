@@ -97,13 +97,12 @@ Le cartelle dipendono dal template scelto:
 {TARGET}/wiki/matters/
 {TARGET}/wiki/deadlines/
 {TARGET}/wiki/contacts/
-{TARGET}/wiki/notes/
 ```
 
 **research:**
 ```
 {TARGET}/wiki/sources/
-{TARGET}/wiki/notes/
+{TARGET}/wiki/insights/
 {TARGET}/wiki/topics/
 {TARGET}/wiki/people/
 {TARGET}/wiki/output/
