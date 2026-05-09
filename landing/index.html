@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LLM Wiki Portable — Your AI-powered knowledge base on a USB stick. Based on the Karpathy method. Works with Claude Code and OpenCode." />
+  <title>LLM Wiki Portable — Memory Card for Your Knowledge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --v:        #7c3aed;
+      --v-light:  #a855f7;
+      --v-dark:   #5b21b6;
+      --v-glow:   rgba(124, 58, 237, 0.4);
+      --v-glow2:  rgba(168, 85, 247, 0.12);
+      --g-950:    #080808;
+      --g-900:    #111111;
+      --g-800:    #1c1c1c;
+      --g-700:    #2a2a2a;
+      --g-600:    #3d3d3d;
+      --g-500:    #6b6b6b;
+      --g-400:    #9ca3af;
+      --g-300:    #d1d5db;
+      --white:    #ffffff;
+      --px:       'Press Start 2P', monospace;
+      --mono:     'Space Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--mono);
+      background: var(--g-950);
+      color: var(--g-300);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── Scanlines overlay ─────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.06) 2px,
+        rgba(0,0,0,0.06) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Typography ────────────────────────────────────────── */
+    h1, h2, h3 { font-family: var(--px); line-height: 1.5; }
+    h1 { font-size: clamp(1.1rem, 3vw, 2rem); color: var(--white); }
+    h2 { font-size: clamp(0.75rem, 1.8vw, 1.1rem); color: var(--white); }
+    h3 { font-size: 0.55rem; color: var(--v-light); }
+    p  { font-size: 0.88rem; color: var(--g-400); }
+    a  { color: var(--v-light); text-decoration: none; }
+
+    code {
+      font-family: var(--mono);
+      color: var(--v-light);
+      background: rgba(124,58,237,0.12);
+      padding: 0.1em 0.4em;
+    }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+    .section    { padding: 6rem 0; }
+
+    .section-label {
+      display: block;
+      font-family: var(--px);
+      font-size: 0.45rem;
+      color: var(--v);
+      letter-spacing: 0.2em;
+      margin-bottom: 1.2rem;
+    }
+
+    /* ── Buttons ───────────────────────────────────────────── */
+    .btn {
+      display: inline-block;
+      font-family: var(--px);
+      font-size: 0.5rem;
+      padding: 1rem 1.8rem;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+    }
+    .btn-primary {
+      background: var(--v);
+      color: var(--white);
+      border: 2px solid var(--v-light);
+      box-shadow: 4px 4px 0 var(--v-dark), 0 0 28px var(--v-glow);
+    }
+    .btn-primary:hover {
+      background: var(--v-light);
+      transform: translate(-2px,-2px);
+      box-shadow: 6px 6px 0 var(--v-dark), 0 0 40px var(--v-glow);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--g-300);
+      border: 2px solid var(--g-600);
+      box-shadow: 4px 4px 0 var(--g-700);
+    }
+    .btn-secondary:hover {
+      border-color: var(--v-light);
+      color: var(--v-light);
+      box-shadow: 4px 4px 0 var(--v-dark);
+      transform: translate(-2px,-2px);
+    }
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* ── Navbar ────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      background: rgba(8,8,8,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--g-700);
+      transition: border-color 0.3s;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .nav-logo {
+      font-family: var(--px);
+      font-size: 0.5rem;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+    .nav-logo-chip {
+      width: 18px;
+      height: 18px;
+      background: var(--v);
+      clip-path: polygon(28% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 28%);
+      box-shadow: 0 0 10px var(--v-glow);
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 0.75rem;
+      color: var(--g-400);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--v-light); }
+    .nav-cta {
+      font-family: var(--px);
+      font-size: 0.4rem;
+      padding: 0.6rem 1rem;
+      background: var(--v);
+      color: var(--white);
+      border: 1px solid var(--v-light);
+      box-shadow: 3px 3px 0 var(--v-dark);
+      transition: all 0.1s;
+    }
+    .nav-cta:hover {
+      background: var(--v-light);
+      transform: translate(-1px,-1px);
+    }
+
+    /* ── Hero ──────────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 8rem 0 6rem;
+      position: relative;
+      overflow: hidden;
+    }
+    #hero::after {
+      content: '';
+      position: absolute;
+      top: 10%;
+      right: -5%;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, var(--v-glow2) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      gap: 4rem;
+      align-items: center;
+    }
+    .hero-boot {
+      font-family: var(--px);
+      font-size: 0.42rem;
+      color: var(--v);
+      letter-spacing: 0.15em;
+      margin-bottom: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .hero-boot-cursor { animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    #hero h1 {
+      font-size: clamp(1.3rem, 3.2vw, 2.1rem);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    #hero h1 .hl { color: var(--v-light); }
+
+    #hero p {
+      font-size: 0.9rem;
+      line-height: 1.9;
+      margin-bottom: 2.5rem;
+      max-width: 500px;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 2rem;
+    }
+    .badge {
+      font-family: var(--px);
+      font-size: 0.35rem;
+      padding: 0.35rem 0.65rem;
+      border: 1px solid var(--g-600);
+      color: var(--g-400);
+      background: var(--g-800);
+    }
+    .badge-v {
+      border-color: var(--v);
+      color: var(--v-light);
+      background: rgba(124,58,237,0.1);
+      box-shadow: 0 0 8px rgba(124,58,237,0.2);
+    }
+
+    /* ── Memory Card ───────────────────────────────────────── */
+    .hero-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    .card-scene {
+      position: relative;
+    }
+    .card-glow-ring {
+      position: absolute;
+      inset: -40px;
+      background: radial-gradient(ellipse, var(--v-glow) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .card-wrap {
+      position: relative;
+      transform: rotate(-6deg);
+      transition: transform 0.4s ease;
+      filter: drop-shadow(0 20px 60px rgba(124,58,237,0.4));
+    }
+    .card-wrap:hover { transform: rotate(-2deg) translateY(-6px); }
+
+    .memory-card {
+      width: 230px;
+      height: 320px;
+      background: linear-gradient(160deg, #2e2e2e 0%, #181818 60%, #111 100%);
+      border-radius: 8px 8px 6px 6px;
+      clip-path: polygon(26px 0%, 100% 0%, 100% 100%, 0% 100%, 0% 26px);
+      border: 1px solid #3a3a3a;
+      position: relative;
+      overflow: hidden;
+    }
+    .memory-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 45%);
+      pointer-events: none;
+    }
+
+    /* window */
+    .card-win {
+      margin: 18px 18px 0;
+      height: 68px;
+      background: #060606;
+      border: 1px solid #111;
+      box-shadow: inset 0 3px 8px rgba(0,0,0,0.9);
+      overflow: hidden;
+      position: relative;
+    }
+    .win-nodes { width: 100%; height: 100%; position: relative; }
+    .n {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--v-light);
+      box-shadow: 0 0 6px var(--v-light);
+      animation: nfloat 3s ease-in-out infinite;
+    }
+    .n1 { width:7px;height:7px;left:18%;top:28%; animation-delay:0s; }
+    .n2 { width:5px;height:5px;left:50%;top:58%; animation-delay:.6s; background:#8b5cf6; }
+    .n3 { width:6px;height:6px;left:72%;top:22%; animation-delay:1.2s; background:#6d28d9; }
+    .n4 { width:5px;height:5px;left:33%;top:68%; animation-delay:1.8s; }
+    .n5 { width:4px;height:4px;left:82%;top:52%; animation-delay:2.4s; background:#c084fc; }
+    .n6 { width:5px;height:5px;left:60%;top:75%; animation-delay:.9s; background:#9333ea; }
+    @keyframes nfloat {
+      0%,100% { transform: translateY(0) scale(1); }
+      50%      { transform: translateY(-4px) scale(1.1); }
+    }
+    .edge {
+      position: absolute;
+      height: 1px;
+      background: rgba(168,85,247,0.25);
+      transform-origin: left center;
+    }
+
+    /* stripe */
+    .card-stripe {
+      height: 7px;
+      background: linear-gradient(90deg, var(--v-dark), var(--v), var(--v-light), var(--v));
+      margin: 8px 18px 0;
+    }
+
+    /* body */
+    .card-body {
+      padding: 10px 18px 0;
+    }
+    .card-brand {
+      font-family: var(--px);
+      font-size: 0.36rem;
+      color: var(--g-300);
+      letter-spacing: 0.12em;
+      margin-bottom: 2px;
+    }
+    .card-model {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      color: var(--g-500);
+      margin-bottom: 10px;
+    }
+
+    /* blocks grid */
+    .blocks {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      margin-bottom: 8px;
+    }
+    .bl {
+      height: 13px;
+      border: 1px solid var(--g-600);
+      background: var(--g-700);
+    }
+    .bl-used { background: var(--v-dark); border-color: #6d28d9; }
+    .bl-lit  { background: var(--v); border-color: var(--v-light); box-shadow: 0 0 4px var(--v-glow); }
+    .bl-act  {
+      background: var(--v-light);
+      border-color: #c084fc;
+      box-shadow: 0 0 8px rgba(168,85,247,0.7);
+      animation: bpulse 2s ease-in-out infinite;
+    }
+    @keyframes bpulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--px);
+      font-size: 0.28rem;
+      color: var(--g-500);
+      margin-bottom: 6px;
+    }
+    .card-meta span:last-child { color: var(--v); }
+
+    /* horizontal grooves */
+    .card-groove {
+      height: 1px;
+      background: rgba(255,255,255,0.04);
+      margin: 6px 0;
+    }
+    .card-groove + .card-groove { margin-top: 4px; }
+
+    /* connector */
+    .card-conn {
+      position: absolute;
+      bottom: 0;
+      left: 0; right: 0;
+      height: 24px;
+      background: linear-gradient(180deg, #161616, #0d0d0d);
+      border-top: 1px solid #303030;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 0 22px;
+    }
+    .pin {
+      flex: 1;
+      height: 14px;
+      background: linear-gradient(180deg, #a07820, #f5c842, #a07820);
+      border-radius: 1px;
+    }
+
+    /* floating tag */
+    .card-tag {
+      position: absolute;
+      top: -14px;
+      right: -4px;
+      font-family: var(--px);
+      font-size: 0.28rem;
+      padding: 0.35rem 0.6rem;
+      background: var(--v);
+      color: var(--white);
+      box-shadow: 2px 2px 0 var(--v-dark), 0 0 12px var(--v-glow);
+    }
+
+    /* USB shadow beneath card */
+    .card-shadow {
+      width: 180px;
+      height: 20px;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.3) 0%, transparent 70%);
+      margin: 12px auto 0;
+    }
+
+    /* ── Features ──────────────────────────────────────────── */
+    #features { background: var(--g-900); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+    .feat-card {
+      padding: 1.8rem;
+      background: var(--g-800);
+      border: 1px solid var(--g-700);
+      box-shadow: 3px 3px 0 var(--g-700);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .feat-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--v-dark), var(--v-light));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .feat-card:hover {
+      border-color: var(--v);
+      box-shadow: 4px 4px 0 var(--v-dark), 0 0 24px var(--v-glow2);
+      transform: translate(-2px,-2px);
+    }
+    .feat-card:hover::after { opacity: 1; }
+    .feat-icon { font-size: 1.4rem; display: block; margin-bottom: 1rem; }
+    .feat-card h3 { font-size: 0.5rem; margin-bottom: 0.8rem; color: var(--white); }
+    .feat-card p  { font-size: 0.78rem; }
+
+    /* ── How it works ──────────────────────────────────────── */
+    #howitworks { background: var(--g-950); }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-top: 3.5rem;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 24px;
+      left: 18%;
+      right: 18%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--v), transparent);
+    }
+    .step { text-align: center; padding: 1.5rem; }
+    .step-num {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1.5rem;
+      background: var(--g-800);
+      border: 2px solid var(--v);
+      box-shadow: 0 0 16px var(--v-glow), 3px 3px 0 var(--v-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--px);
+      font-size: 0.65rem;
+      color: var(--v-light);
+    }
+    .step h3 { font-size: 0.55rem; color: var(--white); margin-bottom: 0.8rem; }
+    .step p  { font-size: 0.78rem; }
+
+    /* ── Templates ─────────────────────────────────────────── */
+    #templates { background: var(--g-900); }
+    .tmpl-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.2rem;
+      margin-top: 3rem;
+    }
+    .tmpl-slot {
+      background: var(--g-800);
+      border: 1px solid var(--g-700);
+      padding: 1.5rem;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .tmpl-slot:hover {
+      border-color: var(--v);
+      box-shadow: 4px 4px 0 var(--v-dark), 0 0 20px var(--v-glow2);
+      transform: translate(-2px,-2px);
+    }
+    .tmpl-slotlabel {
+      font-family: var(--px);
+      font-size: 0.35rem;
+      color: var(--g-500);
+      letter-spacing: 0.12em;
+      margin-bottom: 0.5rem;
+    }
+    .tmpl-name {
+      font-family: var(--px);
+      font-size: 0.6rem;
+      color: var(--v-light);
+      margin-bottom: 0.6rem;
+    }
+    .tmpl-desc { font-size: 0.76rem; color: var(--g-400); margin-bottom: 0.9rem; }
+    .tmpl-folders { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .tmpl-folders span {
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      color: var(--g-500);
+      background: var(--g-700);
+      padding: 0.2rem 0.4rem;
+    }
+    .tmpl-slot.custom-slot {
+      border-color: var(--v);
+      background: linear-gradient(140deg, var(--g-800), rgba(124,58,237,0.07));
+    }
+    .tmpl-slot.custom-slot .tmpl-name { color: var(--white); }
+    .custom-new {
+      position: absolute;
+      top: -1px;
+      right: 14px;
+      font-family: var(--px);
+      font-size: 0.28rem;
+      background: var(--v);
+      color: var(--white);
+      padding: 0.3rem 0.6rem;
+      box-shadow: 0 0 10px var(--v-glow);
+    }
+
+    /* ── Quick Start ───────────────────────────────────────── */
+    #quickstart { background: var(--g-950); }
+    .qs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      margin-top: 3rem;
+      align-items: start;
+    }
+    .terminal {
+      background: #0a0a0a;
+      border: 1px solid var(--g-600);
+      box-shadow: 5px 5px 0 var(--g-700);
+    }
+    .term-bar {
+      background: var(--g-700);
+      padding: 0.55rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .d-r { background: #ef4444; } .d-y { background: #f59e0b; } .d-g { background: #22c55e; }
+    .term-title {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: var(--g-500);
+      margin-left: auto;
+    }
+    .term-body { padding: 1.5rem; }
+    .term-body pre {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      line-height: 2.1;
+      white-space: pre;
+    }
+    .c-comment { color: var(--g-500); }
+    .c-prompt   { color: var(--v-light); }
+    .c-cmd      { color: var(--g-300); }
+    .c-out      { color: var(--v); }
+    .c-slash    { color: #c084fc; font-weight: bold; }
+
+    .qs-steps { display: flex; flex-direction: column; gap: 1.6rem; }
+    .qs-step  { display: flex; gap: 1.2rem; align-items: flex-start; }
+    .qs-num {
+      width: 34px; height: 34px;
+      flex-shrink: 0;
+      background: var(--g-800);
+      border: 1px solid var(--v);
+      box-shadow: 2px 2px 0 var(--v-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--px);
+      font-size: 0.45rem;
+      color: var(--v-light);
+    }
+    .qs-content h3 { font-size: 0.5rem; color: var(--white); margin-bottom: 0.4rem; }
+    .qs-content p  { font-size: 0.76rem; }
+
+    /* ── FAQ ───────────────────────────────────────────────── */
+    #faq { background: var(--g-900); }
+    .faq-list {
+      max-width: 740px;
+      margin: 3rem auto 0;
+    }
+    .faq-item { border-bottom: 1px solid var(--g-700); }
+    .faq-btn {
+      width: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--g-300);
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      font-weight: 700;
+      text-align: left;
+      padding: 1.3rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      transition: color 0.2s;
+    }
+    .faq-btn:hover { color: var(--v-light); }
+    .faq-icon {
+      font-family: var(--px);
+      font-size: 0.45rem;
+      color: var(--v);
+      flex-shrink: 0;
+      transition: transform 0.25s;
+    }
+    .faq-item.open .faq-icon { transform: rotate(90deg); }
+    .faq-ans {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease;
+    }
+    .faq-ans.open { max-height: 160px; }
+    .faq-ans p {
+      font-size: 0.8rem;
+      line-height: 1.85;
+      padding-bottom: 1.3rem;
+    }
+
+    /* ── Final CTA ─────────────────────────────────────────── */
+    #cta {
+      background: var(--g-950);
+      padding: 8rem 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #cta::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 700px;
+      height: 350px;
+      background: radial-gradient(ellipse, var(--v-glow2) 0%, transparent 65%);
+    }
+    #cta h2 {
+      font-size: clamp(0.85rem, 2vw, 1.25rem);
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    #cta p    { margin-bottom: 2.5rem; position: relative; }
+    #cta .btn-group { justify-content: center; }
+
+    /* ── Footer ────────────────────────────────────────────── */
+    footer {
+      background: var(--g-900);
+      border-top: 1px solid var(--g-700);
+      padding: 2.5rem 0;
+    }
+    .foot-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .foot-logo {
+      font-family: var(--px);
+      font-size: 0.4rem;
+      color: var(--g-500);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .foot-logo-chip {
+      width: 12px; height: 12px;
+      background: var(--v);
+      clip-path: polygon(30% 0%,100% 0%,100% 100%,0% 100%,0% 30%);
+    }
+    .foot-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+    .foot-links a {
+      font-size: 0.72rem;
+      color: var(--g-500);
+      transition: color 0.2s;
+    }
+    .foot-links a:hover { color: var(--v-light); }
+    .foot-copy { font-size: 0.68rem; color: var(--g-600); }
+
+    /* ── Scroll animations ─────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+      .tmpl-grid { grid-template-columns: 1fr 1fr; }
+      .qs-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 560px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .tmpl-grid { grid-template-columns: 1fr; }
+      .foot-inner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ──────────────────────────────────────────────── -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-chip"></div>
+      LLM WIKI PORTABLE
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#templates">Templates</a></li>
+      <li><a href="#howitworks">How it works</a></li>
+      <li><a href="#quickstart">Quick Start</a></li>
+    </ul>
+    <a href="https://github.com/inferis995/llm-wiki-portable" class="nav-cta">★ Star on GitHub</a>
+  </div>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-grid">
+
+      <div class="hero-content">
+        <div class="hero-boot">
+          <span class="hero-boot-cursor">▶</span>
+          MEMORY LLM PORTABLE v1.0 · BOOT OK
+        </div>
+        <h1>Your knowledge.<br><span class="hl">Your USB.</span><br>Your AI.</h1>
+        <p>
+          Based on the Karpathy LLM Wiki method. Markdown pages, wikilinks, 3D knowledge graph —
+          always with you, like a save file on a memory card.
+          Works with <strong style="color:var(--g-300)">Claude Code</strong> and <strong style="color:var(--g-300)">OpenCode</strong>.
+        </p>
+        <div class="btn-group">
+          <a href="#quickstart" class="btn btn-primary">INSERT CARD →</a>
+          <a href="https://github.com/inferis995/llm-wiki-portable" class="btn btn-secondary">★ GitHub</a>
+        </div>
+        <div class="hero-badges">
+          <span class="badge badge-v">Claude Code</span>
+          <span class="badge badge-v">OpenCode</span>
+          <span class="badge">USB Portable</span>
+          <span class="badge">Works Offline</span>
+          <span class="badge">Python 3.8+</span>
+          <span class="badge">MIT License</span>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="card-scene">
+          <div class="card-glow-ring"></div>
+          <div class="card-wrap">
+            <div class="card-tag">SAVE DATA OK</div>
+            <div class="memory-card">
+
+              <!-- LCD window with graph nodes -->
+              <div class="card-win">
+                <div class="win-nodes">
+                  <div class="n n1"></div>
+                  <div class="n n2"></div>
+                  <div class="n n3"></div>
+                  <div class="n n4"></div>
+                  <div class="n n5"></div>
+                  <div class="n n6"></div>
+                  <div class="edge" style="width:64px;left:18%;top:32%;transform:rotate(28deg)"></div>
+                  <div class="edge" style="width:48px;left:33%;top:64%;transform:rotate(-18deg)"></div>
+                  <div class="edge" style="width:52px;left:50%;top:52%;transform:rotate(38deg)"></div>
+                  <div class="edge" style="width:38px;left:62%;top:68%;transform:rotate(-30deg)"></div>
+                </div>
+              </div>
+
+              <!-- Color stripe -->
+              <div class="card-stripe"></div>
+
+              <!-- Body -->
+              <div class="card-body">
+                <div class="card-brand">LLM WIKI PORTABLE</div>
+                <div class="card-model">USB Knowledge Base</div>
+
+                <!-- Memory blocks -->
+                <div class="blocks">
+                  <div class="bl bl-lit"></div>
+                  <div class="bl bl-used"></div>
+                  <div class="bl bl-act"></div>
+                  <div class="bl bl-used"></div>
+
+                  <div class="bl bl-used"></div>
+                  <div class="bl bl-lit"></div>
+                  <div class="bl"></div>
+                  <div class="bl"></div>
+
+                  <div class="bl"></div>
+                  <div class="bl"></div>
+                  <div class="bl"></div>
+                  <div class="bl"></div>
+
+                  <div class="bl"></div>
+                  <div class="bl"></div>
+                  <div class="bl"></div>
+                  <div class="bl"></div>
+                </div>
+
+                <div class="card-meta">
+                  <span>6 / 16 BLOCKS</span>
+                  <span>KARPATHY METHOD</span>
+                </div>
+                <div class="card-groove"></div>
+                <div class="card-groove"></div>
+                <div class="card-groove"></div>
+              </div>
+
+              <!-- Gold connector pins -->
+              <div class="card-conn">
+                <div class="pin"></div><div class="pin"></div>
+                <div class="pin"></div><div class="pin"></div>
+                <div class="pin"></div><div class="pin"></div>
+                <div class="pin"></div><div class="pin"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card-shadow"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ─────────────────────────────────────────────── -->
+<section id="features" class="section">
+  <div class="container">
+    <span class="section-label">// SYSTEM SPECS</span>
+    <h2>Everything your knowledge base needs.</h2>
+    <div class="features-grid">
+
+      <div class="feat-card reveal">
+        <span class="feat-icon">🌐</span>
+        <h3>3D KNOWLEDGE GRAPH</h3>
+        <p>Interactive force-directed graph, color-coded by folder. Click any node to read the page. Backlinks auto-generated. Runs entirely in your browser.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <span class="feat-icon">🤖</span>
+        <h3>AI-POWERED</h3>
+        <p>Claude Code or OpenCode read, write, and query the wiki for you. Give Claude a PDF — it builds distilled pages with <code>[[wikilinks]]</code> automatically.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <span class="feat-icon">💾</span>
+        <h3>USB PORTABLE</h3>
+        <p>Your entire knowledge base on a USB stick. Plug into any PC, run one command — done. Like a save file, always with you.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <span class="feat-icon">🔗</span>
+        <h3>WIKILINKS</h3>
+        <p><code>[[page-links]]</code> like Obsidian. Cross-references, backlinks, and graph connections — all resolved automatically by sync.py.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <span class="feat-icon">📡</span>
+        <h3>WORKS OFFLINE</h3>
+        <p>Static HTML/JS, works with <code>file://</code>. No server, no cloud, no internet required after setup. Your data never leaves your drive.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <span class="feat-icon">⚡</span>
+        <h3>ZERO DEPS</h3>
+        <p>Python 3.8+ for sync.py, that's it. No npm, no Docker, no setup hell. Copy the folder, it just works.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ──────────────────────────────────────────── -->
+<section id="howitworks" class="section">
+  <div class="container">
+    <span class="section-label">// OPERATION MANUAL</span>
+    <h2>Three steps. Infinite knowledge.</h2>
+    <div class="steps">
+
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <h3>GIVE CLAUDE A SOURCE</h3>
+        <p>PDF, URL, pasted text, meeting notes — anything. Claude reads it in full and understands what matters.</p>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <h3>CLAUDE BUILDS THE WIKI</h3>
+        <p>Distilled pages with <code>[[wikilinks]]</code>. No appending — Claude <em>rewrites</em> pages. They get sharper over time, not longer.</p>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <h3>EXPLORE THE GRAPH</h3>
+        <p>Open <code>/llm-dashboard</code>. Navigate the 3D graph, search nodes, query Claude — it answers directly from the wiki.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── TEMPLATES ─────────────────────────────────────────────── -->
+<section id="templates" class="section">
+  <div class="container">
+    <span class="section-label">// SELECT SAVE SLOT</span>
+    <h2>Choose your template.</h2>
+    <div class="tmpl-grid">
+
+      <div class="tmpl-slot reveal">
+        <div class="tmpl-slotlabel">SLOT 01</div>
+        <div class="tmpl-name">GENERAL</div>
+        <div class="tmpl-desc">Study, notes, personal research — the original Karpathy method. The default starting point.</div>
+        <div class="tmpl-folders">
+          <span>sources</span><span>entities</span><span>concepts</span><span>comparisons</span>
+        </div>
+      </div>
+
+      <div class="tmpl-slot reveal">
+        <div class="tmpl-slotlabel">SLOT 02</div>
+        <div class="tmpl-name">WORK</div>
+        <div class="tmpl-desc">Freelance, projects, client management. Meetings are historical records — never overwritten.</div>
+        <div class="tmpl-folders">
+          <span>projects</span><span>clients</span><span>meetings</span><span>tasks</span><span>resources</span>
+        </div>
+      </div>
+
+      <div class="tmpl-slot reveal">
+        <div class="tmpl-slotlabel">SLOT 03</div>
+        <div class="tmpl-name">BUSINESS</div>
+        <div class="tmpl-desc">Company knowledge base, SOPs, architectural decisions. Status tracking: active · draft · deprecated.</div>
+        <div class="tmpl-folders">
+          <span>departments</span><span>processes</span><span>people</span><span>decisions</span><span>documents</span>
+        </div>
+      </div>
+
+      <div class="tmpl-slot reveal">
+        <div class="tmpl-slotlabel">SLOT 04</div>
+        <div class="tmpl-name">PROFESSIONAL</div>
+        <div class="tmpl-desc">Lawyer, accountant, consultant, doctor. Client matters, deadlines, contacts — distilled and structured.</div>
+        <div class="tmpl-folders">
+          <span>clients</span><span>matters</span><span>deadlines</span><span>contacts</span>
+        </div>
+      </div>
+
+      <div class="tmpl-slot reveal">
+        <div class="tmpl-slotlabel">SLOT 05</div>
+        <div class="tmpl-name">RESEARCH</div>
+        <div class="tmpl-desc">Researcher, journalist, PhD, analyst. Topics have an explicit thesis — not neutral lists. Output for publishing.</div>
+        <div class="tmpl-folders">
+          <span>sources</span><span>insights</span><span>topics</span><span>people</span><span>output</span>
+        </div>
+      </div>
+
+      <div class="tmpl-slot custom-slot reveal">
+        <div class="custom-new">NEW</div>
+        <div class="tmpl-slotlabel">SLOT 06</div>
+        <div class="tmpl-name">CUSTOM</div>
+        <div class="tmpl-desc">Claude asks you 3 questions about your domain, then generates the folder structure, CLAUDE.md and AGENTS.md from scratch — on the fly.</div>
+        <div class="tmpl-folders">
+          <span>your domain</span><span>your terms</span><span>your structure</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── QUICK START ───────────────────────────────────────────── -->
+<section id="quickstart" class="section">
+  <div class="container">
+    <span class="section-label">// BOOT SEQUENCE</span>
+    <h2>Up and running in 3 steps.</h2>
+    <div class="qs-grid">
+
+      <div class="terminal reveal">
+        <div class="term-bar">
+          <div class="dot d-r"></div>
+          <div class="dot d-y"></div>
+          <div class="dot d-g"></div>
+          <span class="term-title">terminal</span>
+        </div>
+        <div class="term-body">
+          <pre><span class="c-comment"># 1 — Clone the repo</span>
+<span class="c-prompt">$</span> <span class="c-cmd">git clone github.com/inferis995/llm-wiki-portable</span>
+<span class="c-prompt">$</span> <span class="c-cmd">cd llm-wiki-portable</span>
+
+<span class="c-comment"># 2 — Install commands (Linux / macOS)</span>
+<span class="c-prompt">$</span> <span class="c-cmd">bash install-commands.sh</span>
+<span class="c-out">✓ Commands installed for Claude Code + OpenCode</span>
+
+<span class="c-comment"># 3 — Open Claude Code or OpenCode and run</span>
+<span class="c-slash">/install-portable-wiki</span>
+
+<span class="c-comment"># Then open the 3D graph</span>
+<span class="c-slash">/llm-dashboard</span></pre>
+        </div>
+      </div>
+
+      <div class="qs-steps">
+        <div class="qs-step reveal">
+          <div class="qs-num">1</div>
+          <div class="qs-content">
+            <h3>CLONE THE REPO</h3>
+            <p>The repo is just the installer. Your wiki lives on the USB — not in the repo.</p>
+          </div>
+        </div>
+        <div class="qs-step reveal">
+          <div class="qs-num">2</div>
+          <div class="qs-content">
+            <h3>INSTALL COMMANDS</h3>
+            <p>One script installs slash commands for both Claude Code and OpenCode. Windows, macOS, Linux covered.</p>
+          </div>
+        </div>
+        <div class="qs-step reveal">
+          <div class="qs-num">3</div>
+          <div class="qs-content">
+            <h3>RUN /INSTALL-PORTABLE-WIKI</h3>
+            <p>Choose: local or USB? New or migrate? Which template? Claude sets up folders, CLAUDE.md, and the graph — then you're done.</p>
+          </div>
+        </div>
+        <div class="qs-step reveal">
+          <div class="qs-num">✓</div>
+          <div class="qs-content">
+            <h3>START INGESTING</h3>
+            <p>Tell Claude: <em>"Read this PDF and add it to the wiki."</em> Claude finds your wiki from any directory, automatically.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ──────────────────────────────────────────────────── -->
+<section id="faq" class="section">
+  <div class="container">
+    <span class="section-label">// FAQ</span>
+    <h2>Common questions.</h2>
+    <div class="faq-list">
+
+      <div class="faq-item">
+        <button class="faq-btn">
+          Does it work without internet?
+          <span class="faq-icon">▶</span>
+        </button>
+        <div class="faq-ans">
+          <p>Yes. The web UI is static HTML/JS and works with <code>file://</code>. Claude reads your markdown files directly — no server, no vector database, no external API calls for the wiki itself.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-btn">
+          Does it work with OpenCode?
+          <span class="faq-icon">▶</span>
+        </button>
+        <div class="faq-ans">
+          <p>Yes. The install command configures both Claude Code (<code>~/.claude/CLAUDE.md</code>) and OpenCode (<code>~/.config/opencode/agents/wiki.md</code>) automatically. Use whichever you prefer.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-btn">
+          What happens when I switch to a new PC?
+          <span class="faq-icon">▶</span>
+        </button>
+        <div class="faq-ans">
+          <p>Plug in the USB, open Claude Code, run <code>/install-portable-wiki</code> and choose "Nuovo PC". Claude detects the existing wiki and only configures the local system. Your data stays on the USB, untouched.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-btn">
+          Can I migrate a local wiki to USB?
+          <span class="faq-icon">▶</span>
+        </button>
+        <div class="faq-ans">
+          <p>Yes. Choose "Da locale a USB" during install. Claude copies your <code>wiki/</code> and <code>raw/</code> folders to the USB, then regenerates <code>CLAUDE.md</code> with the new path automatically.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-btn">
+          Is my data private?
+          <span class="faq-icon">▶</span>
+        </button>
+        <div class="faq-ans">
+          <p>Your wiki files are local markdown on your machine or USB. The only external calls are Claude's normal AI API calls when you interact with it — nothing else is sent anywhere.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-btn">
+          Can I have multiple wikis?
+          <span class="faq-icon">▶</span>
+        </button>
+        <div class="faq-ans">
+          <p>Yes. Run <code>/install-portable-wiki</code> again pointing to a different path. Each wiki gets its own CLAUDE.md — switch between them by updating the global config.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FINAL CTA ─────────────────────────────────────────────── -->
+<section id="cta">
+  <div class="container">
+    <h2>Start building your knowledge base.</h2>
+    <p>Three commands. Your AI. Your USB.<br>Your knowledge — always with you.</p>
+    <div class="btn-group">
+      <a href="#quickstart" class="btn btn-primary">GET STARTED →</a>
+      <a href="https://github.com/inferis995/llm-wiki-portable" class="btn btn-secondary">★ View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="foot-inner">
+      <div class="foot-logo">
+        <div class="foot-logo-chip"></div>
+        LLM WIKI PORTABLE
+      </div>
+      <ul class="foot-links">
+        <li><a href="https://github.com/inferis995/llm-wiki-portable">GitHub</a></li>
+        <li><a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Karpathy Method</a></li>
+        <li><a href="https://github.com/inferis995/llm-wiki-portable/blob/master/LICENSE">MIT License</a></li>
+      </ul>
+      <div class="foot-copy">Based on the Karpathy LLM Wiki method · MIT License</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // FAQ accordion
+  document.querySelectorAll('.faq-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const ans  = item.querySelector('.faq-ans');
+      const open = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => {
+        i.classList.remove('open');
+        i.querySelector('.faq-ans').classList.remove('open');
+      });
+      if (!open) {
+        item.classList.add('open');
+        ans.classList.add('open');
+      }
+    });
+  });
+
+  // Scroll reveal
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Navbar border accent on scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.borderBottomColor = scrollY > 60 ? 'var(--v-dark)' : 'var(--g-700)';
+  }, { passive: true });
+</script>
+
+</body>
+</html>
