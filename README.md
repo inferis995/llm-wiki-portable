@@ -73,8 +73,8 @@ Claude will ask:
 | `personal` | Study, notes, personal research | sources / entities / concepts / comparisons |
 | `work` | Freelance / project & client management | projects / clients / meetings / tasks / resources |
 | `business` | Company knowledge base, SOPs, decisions | departments / processes / people / decisions / documents / meetings |
-| `professional` | Lawyer, accountant, consultant, doctor | clients / matters / deadlines / contacts / notes |
-| `research` | Researcher, journalist, PhD student, analyst | sources / notes / topics / people / output |
+| `professional` | Lawyer, accountant, consultant, doctor | clients / matters / deadlines / contacts |
+| `research` | Researcher, journalist, PhD student, analyst | sources / insights / topics / people / output |
 
 Then Claude will:
 - Copy the web UI and sync script
@@ -110,8 +110,8 @@ Then talk to Claude:
 | `personal` | Study, notes, personal research | `sources / entities / concepts / comparisons` |
 | `work` | Freelance / project & client management | `projects / clients / meetings / tasks / resources` |
 | `business` | Company knowledge base, SOPs, decisions | `departments / processes / people / decisions / documents / meetings` |
-| `professional` | Lawyer, accountant, consultant, doctor | `clients / matters / deadlines / contacts / notes` |
-| `research` | Researcher, journalist, PhD student, analyst | `sources / notes / topics / people / output` |
+| `professional` | Lawyer, accountant, consultant, doctor | `clients / matters / deadlines / contacts` |
+| `research` | Researcher, journalist, PhD student, analyst | `sources / insights / topics / people / output` |
 
 All templates use the same Karpathy method: ingest → query → lint. Claude rewrites existing pages with progressive synthesis — pages always represent the state of the art, not accumulated notes. The 3D graph colors are assigned automatically from the actual folders in your wiki.
 
