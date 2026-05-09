@@ -7,15 +7,46 @@ Installa e configura LLM Wiki Portable su USB o directory locale.
 
 ---
 
-## Step 0: Parametri
+## Step 0: Modalità
 
-Chiedi all'utente:
+**Prima domanda — cosa vuoi fare?**
 
-**1. Percorso di destinazione della wiki:**
-`"Dove vuoi installare la wiki portable? (es. D:\, E:\, /media/usb, ~/wiki-portable)"`
-Salva come `TARGET` (usa sempre forward slash, es. `D:/wiki-portable`).
+```
+1. Nuova wiki locale    — crea una nuova wiki in una cartella locale
+2. Nuova wiki USB       — crea una nuova wiki su drive USB
+3. Da locale a USB      — copia una wiki locale esistente su USB
+4. Nuovo PC             — ho già la wiki su USB, configura solo questo PC
+```
 
-**2. Template:**
+Salva la scelta come `MODE` = `"local"`, `"usb"`, `"migrate"` o `"newpc"`.
+
+---
+
+**In base alla modalità, chiedi i path:**
+
+**MODE = "local":**
+- `"Dove vuoi creare la wiki? (es. ~/wiki, ~/Documenti/wiki)"` → salva come `TARGET`
+- Poi chiedi il template (vedi sotto)
+
+**MODE = "usb":**
+- `"Percorso del drive USB? (es. D:\, E:\, /media/usb/wiki)"` → salva come `TARGET`
+- Poi chiedi il template (vedi sotto)
+
+**MODE = "migrate"** (da locale a USB):
+- `"Percorso della wiki locale esistente?"` → salva come `SOURCE`
+- `"Percorso destinazione sul drive USB?"` → salva come `TARGET`
+- Rileva automaticamente il template leggendo `{SOURCE}/CLAUDE.md` o dalla struttura cartelle — se non riesci, chiedi all'utente
+- Vai direttamente a Step 3 sezione "Migrazione" → Step 4 → Step 5 → Step 6
+
+**MODE = "newpc"** (wiki già su USB, nuovo PC):
+- `"Percorso della wiki sull'USB?"` → salva come `TARGET`
+- Rileva automaticamente il template leggendo `{TARGET}/CLAUDE.md` o dalla struttura cartelle
+- Vai direttamente a Step 4 → Step 5 → Step 6
+
+---
+
+**Scelta template** (solo per MODE = "local" o "usb"):
+
 `"Che uso vuoi farne?"`
 - **general** — Uso generico, studio, note, ricerca personale — metodo Karpathy originale (`sources / entities / concepts / comparisons`)
 - **work** — Progetti e clienti (`projects / clients / meetings / tasks / resources`)
@@ -28,19 +59,12 @@ Salva come `TEMPLATE` = `"general"`, `"work"`, `"business"`, `"professional"`, `
 
 ---
 
-## Step 1: Rileva stato esistente
+## Step 1: Verifica path
 
-Controlla se esiste già una wiki:
-- `{TARGET}/wiki/` con file .md
-- `{TARGET}/web/index.html`
-- `{TARGET}/sync.py`
+Usa sempre forward slash per `TARGET` e `SOURCE` (es. `D:/wiki`).
 
-**Se TUTTI esistono → "Configura su nuovo PC"** (wiki già sull'USB, nuovo PC)
-- Vai a Step 4 → Step 5 → Step 6
-- (TEMPLATE viene usato solo per aggiornare CLAUDE.md se non esiste già)
-
-**Se mancano → "Prima installazione"**
-Chiedi: nuova wiki vuota o importa wiki esistente?
+Controlla che il path sia accessibile e scrivibile. Se non esiste, crealo.
+Se il drive USB non è montato o il path non è raggiungibile, avvisa l'utente e interrompi.
 
 ---
 
@@ -151,10 +175,16 @@ Poi genera il template su misura:
   # Wiki Log
   ```
 
-**Se "Importa wiki esistente":**
+**Se "Importa wiki esistente"** (nuova wiki da contenuto esistente):
 - Chiedi: `"Percorso della wiki esistente da importare?"`
 - Copia tutti i .md preservando la struttura delle sottodirectory
 - Se c'è una `raw/` chiedi se copiarla
+
+**Se MODE = "migrate"** (da locale a USB):
+- Copia ricorsivamente `{SOURCE}/wiki/` → `{TARGET}/wiki/` preservando tutta la struttura
+- Copia `{SOURCE}/raw/` → `{TARGET}/raw/` (chiedi conferma se è grande)
+- Copia web UI e sync.py da `{TEMPLATE_SRC}/` (sovrascrive eventuali versioni vecchie)
+- **Non** copiare `{SOURCE}/CLAUDE.md` o `{SOURCE}/AGENTS.md` — verranno rigenerati in Step 4 con il nuovo `TARGET`
 
 **Sempre:**
 Copia da `{TEMPLATE_SRC}/`:
