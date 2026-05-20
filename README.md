@@ -5,7 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="https://llm-wiki-lyart.vercel.app/"><img src="https://img.shields.io/badge/demo-live-7c3aed?style=flat&logo=vercel&logoColor=white" alt="Live Demo"></a>
+  <a href="https://llm-wiki-lyart.vercel.app/"><img src="https://img.shields.io/badge/landing-vercel-7c3aed?style=flat&logo=vercel&logoColor=white" alt="Landing"></a>
+  <a href="https://inferis995.github.io/llm-wiki-portable/"><img src="https://img.shields.io/badge/demo%20graph-github%20pages-238636?style=flat&logo=github&logoColor=white" alt="Demo Graph"></a>
   <a href="https://github.com/inferis995/llm-wiki-portable/stargazers"><img src="https://img.shields.io/github/stars/inferis995/llm-wiki-portable?style=social" alt="Stars"></a>
   <a href="https://github.com/inferis995/llm-wiki-portable/blob/master/LICENSE"><img src="https://img.shields.io/github/license/inferis995/llm-wiki-portable?color=blue" alt="License"></a>
   <img src="https://img.shields.io/github/last-commit/inferis995/llm-wiki-portable?color=orange" alt="Last Commit">
@@ -17,6 +18,8 @@
 
 <p align="center">
   <a href="https://llm-wiki-lyart.vercel.app/">🌐 llm-wiki-lyart.vercel.app</a>
+  &nbsp;·&nbsp;
+  <a href="https://inferis995.github.io/llm-wiki-portable/">📊 Demo Graph (GitHub Pages)</a>
 </p>
 
 Your personal AI-powered knowledge base — on a USB stick or any folder.
