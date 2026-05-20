@@ -5,20 +5,32 @@
   "use strict";
 
   // ── Constants ──────────────────────────────────────────────
-  const FALLBACK_COLOR = "#6b7280";
+  const FALLBACK_COLOR       = "#6b7280";
+  const IDLE_DELAY_MS        = 4000;   // ms before ambient rotation starts
+  const ROTATION_SPEED       = 0.0025;
+  const ROTATION_RADIUS      = 320;
 
-  // Populated from WIKI_DATA.categories after load
   let CATEGORY_COLORS = {};
   let CATEGORY_ORDER  = [];
 
   // ── State ──────────────────────────────────────────────────
-  let pages = [];
-  let pageBySlug = new Map();   // O(1) lookup by slug
-  let graphData = { nodes: [], links: [] };
-  let activeSlug = null;
-  let graph = null;
+  let pages              = [];
+  let pageBySlug         = new Map();
+  let graphData          = { nodes: [], links: [] };
+  let activeSlug         = null;
+  let graph              = null;
   let collapsedCategories = new Set();
-  let tooltip = null;
+
+  // Highlight state
+  let hoveredNode        = null;
+  let highlightNodes     = new Set();
+  let highlightLinks     = new Set();
+  const nodeMaterials    = {};  // nodeId → { core, glow, baseColor }
+
+  // Rotation state
+  let lastInteractionTime = Date.now();
+  let rotationAngle       = 0;
+  let rotationRunning     = false;
 
   // ── DOM refs ───────────────────────────────────────────────
   const sidebarPages   = document.getElementById("sidebar-pages");
@@ -38,8 +50,6 @@
 
   // ── Init ───────────────────────────────────────────────────
   function init() {
-    buildLegend();
-
     if (typeof WIKI_DATA === "undefined") {
       graphContainer.innerHTML =
         '<div class="loading">data.js non trovato. Esegui sync.py prima.</div>';
@@ -53,22 +63,20 @@
       return;
     }
 
-    // Build category map from WIKI_DATA (generated dynamically by sync.py)
     const rawCats = WIKI_DATA.categories || {};
     CATEGORY_COLORS = Object.assign({ root: FALLBACK_COLOR }, rawCats);
     CATEGORY_ORDER  = Object.keys(rawCats);
 
-    // Build O(1) lookup map
     pages.forEach((p) => pageBySlug.set(p.slug, p));
 
     graphData = buildGraphData(pages);
+    buildLegend();
     renderSidebar();
     updateStats();
     initGraph();
-    initTooltip();
     bindEvents();
+    startRotationLoop();
 
-    // Hash routing — navigate to page if hash present
     if (location.hash) {
       const slug = decodeURIComponent(location.hash.slice(1));
       if (slug && pageBySlug.has(slug)) navigateTo(slug, false);
@@ -81,26 +89,13 @@
   }
 
   function buildLegend() {
+    if (!legend) return;
     legend.innerHTML = CATEGORY_ORDER.map(
       (cat) =>
         `<span class="legend-item">` +
         `<span class="category-dot" style="background:${CATEGORY_COLORS[cat] || FALLBACK_COLOR}"></span>` +
         `${catLabel(cat)}</span>`
     ).join("");
-  }
-
-  // ── Tooltip ────────────────────────────────────────────────
-  function initTooltip() {
-    tooltip = document.createElement("div");
-    tooltip.className = "graph-tooltip";
-    tooltip.style.display = "none";
-    graphContainer.appendChild(tooltip);
-
-    graphContainer.addEventListener("mousemove", (e) => {
-      if (tooltip.style.display === "none") return;
-      tooltip.style.left = e.offsetX + 14 + "px";
-      tooltip.style.top  = e.offsetY - 10 + "px";
-    });
   }
 
   // ── Graph Data ─────────────────────────────────────────────
@@ -125,11 +120,9 @@
       });
     });
 
-    // Track connected nodes
     const connected = new Set();
     links.forEach((l) => { connected.add(l.source); connected.add(l.target); });
 
-    // Find hub (most connected node)
     const connCounts = {};
     links.forEach((l) => {
       connCounts[l.source] = (connCounts[l.source] || 0) + 1;
@@ -141,14 +134,11 @@
       if (c > maxC) { maxC = c; hubId = id; }
     }
 
-    // Isolated nodes → virtual link to hub
     nodes.forEach((n) => {
-      if (!connected.has(n.id) && n.id !== hubId) {
+      if (!connected.has(n.id) && n.id !== hubId)
         links.push({ source: n.id, target: hubId, __virtual: true });
-      }
     });
 
-    // Same-category chain for visual grouping
     const byCat = {};
     nodes.forEach((n) => {
       if (!byCat[n.category]) byCat[n.category] = [];
@@ -158,13 +148,25 @@
       for (let i = 1; i < catNodes.length; i++) {
         const a = catNodes[i - 1], b = catNodes[i];
         const key = [a, b].sort().join("|");
-        if (!linkSet.has(key)) {
+        if (!linkSet.has(key))
           links.push({ source: a, target: b, __virtual: true });
-        }
       }
     }
 
     return { nodes, links };
+  }
+
+  // ── Connection count map ────────────────────────────────────
+  function buildConnCounts() {
+    const counts = {};
+    graphData.links.forEach((l) => {
+      if (l.__virtual) return;
+      const s = l.source?.id || l.source;
+      const t = l.target?.id || l.target;
+      counts[s] = (counts[s] || 0) + 1;
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    return counts;
   }
 
   // ── Sidebar ────────────────────────────────────────────────
@@ -189,13 +191,12 @@
       const catPages = grouped[cat];
       if (!catPages) return;
       const collapsed = collapsedCategories.has(cat);
-      const arrow = collapsed ? "▶" : "▼";
       html += `<div class="category-group">
         <div class="category-header" data-cat="${cat}">
           <span class="category-dot" style="background:${CATEGORY_COLORS[cat] || FALLBACK_COLOR}"></span>
           ${catLabel(cat)}
           <span class="category-count">${catPages.length}</span>
-          <span class="category-arrow">${arrow}</span>
+          <span class="category-arrow">${collapsed ? "▶" : "▼"}</span>
         </div>`;
       if (!collapsed) {
         catPages.forEach((p) => {
@@ -225,23 +226,21 @@
   // ── Stats ──────────────────────────────────────────────────
   function updateStats() {
     const realLinks = graphData.links.filter((l) => !l.__virtual).length;
-    pageCount.textContent = `${pages.length} pagine`;
-    linkCount.textContent = `${realLinks} link`;
+    if (pageCount) pageCount.textContent = `${pages.length} pagine`;
+    if (linkCount) linkCount.textContent = `${realLinks} link`;
   }
 
   // ── Navigation ─────────────────────────────────────────────
   function navigateTo(slug, updateHash = true) {
     activeSlug = slug;
-    if (updateHash) {
+    if (updateHash)
       history.pushState(null, "", "#" + encodeURIComponent(slug));
-    }
     renderSidebar(searchInput.value);
     showPage(slug);
   }
 
   function findPage(slug) {
     if (pageBySlug.has(slug)) return pageBySlug.get(slug);
-    // Fallback: suffix match and title match (for wikilinks without category prefix)
     for (const p of pages) {
       if (p.slug.endsWith("/" + slug)) return p;
       if (p.title.toLowerCase() === slug.toLowerCase()) return p;
@@ -259,30 +258,23 @@
     topbarTitle.textContent = page.title;
 
     const catColor = CATEGORY_COLORS[page.category] || FALLBACK_COLOR;
-    const catBadge = catLabel(page.category);
-
     let headerHtml =
-      `<span class="category-badge" style="background:${catColor}30;color:${catColor}">${catBadge}</span>` +
+      `<span class="category-badge" style="background:${catColor}30;color:${catColor}">${catLabel(page.category)}</span>` +
       `<h2>${page.title}</h2><div class="meta">`;
     if (page.frontmatter.updated)
       headerHtml += `Aggiornato: ${page.frontmatter.updated}`;
     if (page.frontmatter.sources)
-      headerHtml += ` &middot; Fonti: ${page.frontmatter.sources}`;
+      headerHtml += ` · Fonti: ${page.frontmatter.sources}`;
     headerHtml += "</div>";
 
-    if (page.frontmatter.tags && page.frontmatter.tags.length > 0) {
+    if (page.frontmatter.tags?.length) {
       headerHtml += '<div class="tags">';
-      page.frontmatter.tags.forEach((t) => {
-        headerHtml += `<span class="tag">${t}</span>`;
-      });
+      page.frontmatter.tags.forEach((t) => { headerHtml += `<span class="tag">${t}</span>`; });
       headerHtml += "</div>";
     }
-
     pageHeader.innerHTML = headerHtml;
 
-    const processed = processWikilinks(page.content);
-    pageContent.innerHTML = marked.parse(processed);
-
+    pageContent.innerHTML = marked.parse(processWikilinks(page.content));
     pageContent.querySelectorAll("a").forEach((a) => {
       const href = a.getAttribute("href");
       if (href && !href.startsWith("http") && !href.startsWith("mailto:")) {
@@ -296,26 +288,23 @@
     });
 
     let linksHtml = "";
-    if (page.backlinks && page.backlinks.length > 0) {
+    if (page.backlinks?.length) {
       linksHtml += `<div class="links-section"><h3>Backlinks</h3><div>`;
       page.backlinks.forEach((bl) => {
         const blPage = findPage(bl);
-        const label  = blPage ? blPage.title : bl.split("/").pop();
-        linksHtml += `<a data-slug="${bl}">${label}</a>`;
+        linksHtml += `<a data-slug="${bl}">${blPage ? blPage.title : bl.split("/").pop()}</a>`;
       });
       linksHtml += "</div></div>";
     }
-    if (page.links && page.links.length > 0) {
+    if (page.links?.length) {
       linksHtml += `<div class="links-section"><h3>Correlati</h3><div>`;
       page.links.forEach((link) => {
-        const linkPage = findPage(link);
-        const label    = linkPage ? linkPage.title : link;
-        linksHtml += `<a data-slug="${link}">${label}</a>`;
+        const lp = findPage(link);
+        linksHtml += `<a data-slug="${link}">${lp ? lp.title : link}</a>`;
       });
       linksHtml += "</div></div>";
     }
     pageLinks.innerHTML = linksHtml;
-
     pageLinks.querySelectorAll("a[data-slug]").forEach((el) => {
       el.addEventListener("click", () => navigateTo(el.dataset.slug));
     });
@@ -338,133 +327,211 @@
     });
   }
 
+  // ── Highlight helpers ──────────────────────────────────────
+  function updateHighlight(node) {
+    hoveredNode = node;
+    highlightNodes.clear();
+    highlightLinks.clear();
+
+    if (node) {
+      highlightNodes.add(node.id || node);
+      graphData.links.forEach((l) => {
+        if (l.__virtual) return;
+        const s = l.source?.id ?? l.source;
+        const t = l.target?.id ?? l.target;
+        const nid = node.id || node;
+        if (s === nid || t === nid) {
+          highlightLinks.add(l);
+          highlightNodes.add(s);
+          highlightNodes.add(t);
+        }
+      });
+    }
+
+    // Update Three.js materials directly (no re-render needed)
+    graphData.nodes.forEach((n) => {
+      const mats = nodeMaterials[n.id];
+      if (!mats) return;
+      const active = !hoveredNode || highlightNodes.has(n.id);
+      const col = new THREE.Color(mats.baseColor);
+      mats.core.color.set(active ? col : new THREE.Color(0x111111));
+      mats.core.opacity   = active ? 0.95 : 0.12;
+      mats.glow.color.set(active ? col : new THREE.Color(0x111111));
+      mats.glow.opacity   = active ? 0.12 : 0.01;
+    });
+  }
+
   // ── 3D Graph ───────────────────────────────────────────────
   function initGraph() {
-    const connectionCounts = {};
-    graphData.links.forEach((l) => {
-      if (l.__virtual) return;
-      connectionCounts[l.source] = (connectionCounts[l.source] || 0) + 1;
-      connectionCounts[l.target] = (connectionCounts[l.target] || 0) + 1;
-    });
+    const connCounts = buildConnCounts();
 
     graph = ForceGraph3D()(graphContainer)
       .graphData(graphData)
-      .backgroundColor("#08080c")
+      .backgroundColor("#07070c")
       .enableNodeDrag(true)
-      .cooldownTicks(300)
-      .d3AlphaDecay(0.015)
-      .d3VelocityDecay(0.3)
+      .cooldownTicks(400)
+      .d3AlphaDecay(0.012)
+      .d3VelocityDecay(0.25)
       .showNavInfo(false)
-      .linkColor((link) =>
-        link.__virtual ? "rgba(80,80,80,0)" : "rgba(120,140,170,0.35)"
-      )
-      .linkWidth((link) => (link.__virtual ? 0 : 1))
-      .linkDirectionalArrowLength((link) => (link.__virtual ? 0 : 4))
-      .linkDirectionalArrowRelPos(0.92)
-      .linkDirectionalArrowColor("rgba(120,140,170,0.5)")
-      .linkOpacity(0.3)
-      .nodeThreeObject((node) => buildNodeObject(node, connectionCounts))
-      .nodeThreeObjectExtend(true)
-      .onNodeHover((node) => {
-        if (!tooltip) return;
-        if (node) {
-          tooltip.textContent = node.title;
-          tooltip.style.display = "block";
-        } else {
-          tooltip.style.display = "none";
-        }
+
+      // Links — clean lines, no arrows
+      .linkColor((l) => {
+        if (l.__virtual) return "rgba(0,0,0,0)";
+        const active = !hoveredNode || highlightLinks.has(l);
+        return active ? "rgba(160,180,220,0.5)" : "rgba(40,40,60,0.15)";
       })
+      .linkWidth((l) => l.__virtual ? 0 : 1)
+      .linkOpacity(1)
+      .linkDirectionalArrowLength(0)
+
+      // Particles — animated flow along real links
+      .linkDirectionalParticles((l) => l.__virtual ? 0 : 2)
+      .linkDirectionalParticleWidth((l) => {
+        if (l.__virtual) return 0;
+        return !hoveredNode || highlightLinks.has(l) ? 2 : 0;
+      })
+      .linkDirectionalParticleSpeed(0.005)
+      .linkDirectionalParticleColor((l) => {
+        const s = l.source?.id ?? l.source;
+        const t = l.target?.id ?? l.target;
+        const sNode = graphData.nodes.find((n) => n.id === s);
+        return sNode ? CATEGORY_COLORS[sNode.category] || FALLBACK_COLOR : FALLBACK_COLOR;
+      })
+
+      // Nodes — custom Three.js objects
+      .nodeThreeObject((node) => buildNodeObject(node, connCounts))
+      .nodeThreeObjectExtend(true)
+
+      // Hover
+      .onNodeHover((node) => {
+        graphContainer.style.cursor = node ? "pointer" : "default";
+        updateHighlight(node);
+        resetIdleTimer();
+
+        // Show/hide label for hovered node
+        graphData.nodes.forEach((n) => {
+          const mats = nodeMaterials[n.id];
+          if (mats?.label) {
+            mats.label.visible = node && n.id === (node.id || node);
+          }
+        });
+      })
+
+      // Click
       .onNodeClick((node) => {
         navigateTo(node.id);
-        const dist = 40;
+        resetIdleTimer();
+        const dist = 60;
         graph.cameraPosition(
-          { x: node.x + dist, y: node.y + dist * 0.4, z: node.z + dist },
+          { x: node.x + dist, y: node.y + dist * 0.3, z: node.z + dist },
           node,
-          800
+          900
         );
-      });
+      })
 
-    graph.d3Force("link").distance((link) => (link.__virtual ? 25 : 40));
-    graph.d3Force("charge").strength(-30);
-    graph.d3Force("center").strength(1.0);
+      // Background click → deselect highlight
+      .onBackgroundClick(() => { updateHighlight(null); });
 
-    setTimeout(() => graph.zoomToFit(300, 50), 3500);
+    // Force tuning
+    graph.d3Force("link").distance((l) => l.__virtual ? 20 : 50);
+    graph.d3Force("charge").strength(-60);
+    graph.d3Force("center").strength(0.8);
+
+    // Initial fit
+    setTimeout(() => graph.zoomToFit(400, 60), 3000);
   }
 
-  function buildNodeObject(node, connectionCounts) {
-    const color    = CATEGORY_COLORS[node.category] || FALLBACK_COLOR;
-    const count    = connectionCounts[node.id] || 0;
-    const size     = 3 + Math.min(count * 0.4, 4);
-    const isActive = activeSlug === node.id;
+  function buildNodeObject(node, connCounts) {
+    const color = CATEGORY_COLORS[node.category] || FALLBACK_COLOR;
+    const count = connCounts[node.id] || 0;
+    const size  = 3 + Math.sqrt(count) * 2;   // sqrt scaling: hubs are big, leaves are small
 
     const group = new THREE.Group();
 
     // Core sphere
-    const geo = new THREE.SphereGeometry(size, 24, 24);
-    const mat = new THREE.MeshStandardMaterial({
-      color:            new THREE.Color(isActive ? "#ffffff" : color),
-      emissive:         new THREE.Color(color),
-      emissiveIntensity: isActive ? 1.0 : 0.3,
-      roughness:        0.3,
-      metalness:        0.4,
+    const geo = new THREE.SphereGeometry(size, 20, 20);
+    const mat = new THREE.MeshBasicMaterial({
+      color:       new THREE.Color(color),
+      transparent: true,
+      opacity:     0.95,
     });
     group.add(new THREE.Mesh(geo, mat));
 
     // Glow halo
-    const glowGeo = new THREE.SphereGeometry(size * 1.6, 14, 14);
+    const glowGeo = new THREE.SphereGeometry(size * 2, 12, 12);
     const glowMat = new THREE.MeshBasicMaterial({
       color:       new THREE.Color(color),
       transparent: true,
-      opacity:     isActive ? 0.35 : 0.12,
+      opacity:     0.10,
+      side:        THREE.BackSide,
     });
     group.add(new THREE.Mesh(glowGeo, glowMat));
 
-    // Label sprite
-    const label    = shortTitle(node.title || "");
-    const canvas   = document.createElement("canvas");
-    const ctx      = canvas.getContext("2d");
-    const fontSize = 36;
-    const font     = `${isActive ? "bold " : ""}${fontSize}px Inter, Arial, sans-serif`;
-    ctx.font       = font;
-    const measured = ctx.measureText(label);
-    const textW    = measured.width || label.length * fontSize * 0.5;
+    // Floating label — visible only on hover
+    const label  = shortTitle(node.title || "", 22);
+    const canvas = document.createElement("canvas");
+    const ctx    = canvas.getContext("2d");
+    const fs     = 32;
+    ctx.font     = `${fs}px Inter, Arial, sans-serif`;
+    const tw     = ctx.measureText(label).width || label.length * fs * 0.5;
+    canvas.width  = Math.ceil(tw + 28);
+    canvas.height = fs + 18;
+    ctx.font      = `${fs}px Inter, Arial, sans-serif`;
 
-    canvas.width  = Math.ceil(textW + 32);
-    canvas.height = fontSize + 20;
-    ctx.font      = font;
-
-    ctx.fillStyle = isActive ? "rgba(255,255,255,0.18)" : "rgba(6,6,10,0.75)";
-    const pw = canvas.width, ph = canvas.height, r = 8;
+    // pill background
+    const pw = canvas.width, ph = canvas.height, r = 7;
+    ctx.fillStyle = "rgba(10,10,18,0.88)";
     ctx.beginPath();
-    ctx.moveTo(r, 0); ctx.lineTo(pw - r, 0); ctx.quadraticCurveTo(pw, 0, pw, r);
-    ctx.lineTo(pw, ph - r); ctx.quadraticCurveTo(pw, ph, pw - r, ph);
-    ctx.lineTo(r, ph); ctx.quadraticCurveTo(0, ph, 0, ph - r);
-    ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.moveTo(r,0); ctx.lineTo(pw-r,0); ctx.quadraticCurveTo(pw,0,pw,r);
+    ctx.lineTo(pw,ph-r); ctx.quadraticCurveTo(pw,ph,pw-r,ph);
+    ctx.lineTo(r,ph); ctx.quadraticCurveTo(0,ph,0,ph-r);
+    ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle    = isActive ? "#ffffff" : "#d4dae4";
+    ctx.fillStyle    = "#e2e8f0";
     ctx.textAlign    = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, canvas.width / 2, canvas.height / 2);
+    ctx.fillText(label, pw / 2, ph / 2);
 
-    const texture       = new THREE.CanvasTexture(canvas);
-    texture.minFilter   = THREE.LinearFilter;
-
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
     const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: isActive ? 1 : 0.85, sizeAttenuation: true })
+      new THREE.SpriteMaterial({ map: tex, transparent: true, sizeAttenuation: true })
     );
     const aspect = canvas.width / canvas.height;
-    sprite.scale.set(aspect * 3, 3, 1);
-    sprite.position.y = -(size + 3);
+    sprite.scale.set(aspect * 4, 4, 1);
+    sprite.position.y = -(size + 4);
+    sprite.visible = false;   // hidden by default, shown on hover
     group.add(sprite);
+
+    // Store for later updates
+    nodeMaterials[node.id] = { core: mat, glow: glowMat, label: sprite, baseColor: color };
 
     return group;
   }
 
   function shortTitle(title, max) {
-    max = max || 20;
     return title.length <= max ? title : title.slice(0, max - 1) + "…";
+  }
+
+  // ── Ambient rotation ───────────────────────────────────────
+  function resetIdleTimer() {
+    lastInteractionTime = Date.now();
+  }
+
+  function startRotationLoop() {
+    function tick() {
+      requestAnimationFrame(tick);
+      if (!graph || activeSlug) return;
+      if (Date.now() - lastInteractionTime < IDLE_DELAY_MS) return;
+      rotationAngle += ROTATION_SPEED;
+      graph.cameraPosition({
+        x: ROTATION_RADIUS * Math.sin(rotationAngle),
+        z: ROTATION_RADIUS * Math.cos(rotationAngle),
+      });
+    }
+    requestAnimationFrame(tick);
   }
 
   // ── Events ─────────────────────────────────────────────────
@@ -473,7 +540,11 @@
     backBtn.addEventListener("click", showGraph);
     toggleBtn.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
-    // Hash routing — browser back/forward
+    // Reset idle on any graph interaction
+    graphContainer.addEventListener("mousedown", resetIdleTimer, { passive: true });
+    graphContainer.addEventListener("wheel", resetIdleTimer, { passive: true });
+    graphContainer.addEventListener("touchstart", resetIdleTimer, { passive: true });
+
     window.addEventListener("popstate", () => {
       if (location.hash) {
         const slug = decodeURIComponent(location.hash.slice(1));
@@ -483,9 +554,7 @@
       }
     });
 
-    // Keyboard shortcuts
     document.addEventListener("keydown", (e) => {
-      // '/' — focus search (when not already in an input)
       if (e.key === "/" && document.activeElement !== searchInput &&
           document.activeElement.tagName !== "INPUT") {
         e.preventDefault();
@@ -493,7 +562,6 @@
         searchInput.select();
         return;
       }
-      // 'Escape' — blur search or go back to graph
       if (e.key === "Escape") {
         if (document.activeElement === searchInput) {
           searchInput.blur();
