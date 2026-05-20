@@ -59,11 +59,11 @@ bash install-commands.sh
 powershell -File install-commands.ps1
 ```
 
-This copies the slash commands to Claude Code and OpenCode.
+This copies the slash commands to Claude Code, OpenCode, and Hermes Agent.
 
 ### Step 3 — Set up your wiki
 
-Open **Claude Code** or **OpenCode** and run:
+Open **Claude Code**, **OpenCode**, or **Hermes Agent** and run:
 
 ```
 /install-portable-wiki
@@ -127,8 +127,9 @@ All templates use the same Karpathy method: ingest → query → lint. Claude re
 Based on the Karpathy method — the LLM acts as a "compiler" that incrementally builds a structured wiki from raw sources. Claude reads markdown files directly; no embedding server or vector database needed.
 
 ```
-~/.claude/CLAUDE.md          ← Global AI instructions (points to your USB path)
-~/.config/opencode/agents/wiki.md  ← OpenCode global agent
+~/.claude/CLAUDE.md                    ← Claude Code global instructions
+~/.config/opencode/agents/wiki.md     ← OpenCode global agent
+~/.hermes/SOUL.md                     ← Hermes Agent global identity
 
 USB Drive (or any folder)/
 ├── wiki/                    ← Your pages (markdown with wikilinks)
@@ -152,7 +153,7 @@ USB Drive (or any folder)/
 
 ### Moving to Another PC
 
-Plug the USB into a new computer → open Claude Code or OpenCode → run `/install-portable-wiki`. The command detects the existing wiki and only configures the local system (global CLAUDE.md, commands). Your data stays on the USB.
+Plug the USB into a new computer → open Claude Code, OpenCode, or Hermes Agent → run `/install-portable-wiki`. The command detects the existing wiki and only configures the local system (global CLAUDE.md / SOUL.md, commands). Your data stays on the USB.
 
 ## Page Format
 
