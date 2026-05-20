@@ -21,12 +21,12 @@
 
 Your personal AI-powered knowledge base — on a USB stick or any folder.
 
-Based on the [Karpathy LLM Wiki method](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Works with **Claude Code** and **OpenCode**. Write markdown pages with `[[wikilinks]]`, visualize them as a 3D graph, and carry everything on a USB drive. Ask Claude to ingest sources, query your knowledge base, and generate new pages automatically.
+Based on the [Karpathy LLM Wiki method](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Works with **Claude Code**, **OpenCode**, and **Hermes Agent**. Write markdown pages with `[[wikilinks]]`, visualize them as a 3D graph, and carry everything on a USB drive. Ask your AI to ingest sources, query your knowledge base, and generate new pages automatically.
 
 ## Features
 
 - **3D Knowledge Graph** — Interactive force-directed graph, color-coded by category
-- **AI-Powered** — Claude Code or OpenCode read, write, and query the wiki for you
+- **AI-Powered** — Claude Code, OpenCode, or Hermes Agent read, write, and query the wiki for you
 - **USB Portable** — Plug into any PC, run one command, done
 - **Markdown + Wikilinks** — `[[page-links]]` like Obsidian, backlinks auto-generated
 - **Offline** — Static HTML/JS, works with `file://`, no server needed
@@ -179,7 +179,7 @@ Content with [[wikilinks]] to other pages.
 
 | Requirement | Notes |
 |-------------|-------|
-| **Claude Code** or **OpenCode** | AI assistant that runs the commands |
+| **Claude Code**, **OpenCode**, or **Hermes Agent** | AI assistant that runs the commands |
 | **Python 3.8+** | For `sync.py` (generates the 3D graph data) |
 | **USB drive or folder** | Any writable path works |
 | **Browser** | For the 3D graph UI |
