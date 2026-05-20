@@ -196,18 +196,18 @@ Copia da `{TEMPLATE_SRC}/`:
 
 ---
 
-## Step 4: Istruzioni globali per Claude
+## Step 4: Istruzioni globali per AI tools
 
-**CRITICO**: CLAUDE.md e AGENTS.md vanno installati sul **PC locale** (non sull'USB) in modo che Claude trovi la wiki da qualsiasi directory.
+**CRITICO**: tutti i file di configurazione vanno installati sul **PC locale** (non sull'USB) in modo che ogni tool trovi la wiki da qualsiasi directory.
 
-### 4a. Genera `~/.claude/CLAUDE.md` (globale)
+### 4a. Genera `~/.claude/CLAUDE.md` (Claude Code — globale)
 
 Leggi il template da `{TEMPLATE_SRC}/templates/{TEMPLATE}/CLAUDE.md`.
 Sostituisci **tutte** le occorrenze di `{wiki-root}` con `{TARGET}` (forward slash).
 Scrivi il contenuto in `~/.claude/CLAUDE.md`.
 Scrivi anche una copia in `{TARGET}/CLAUDE.md` come backup sull'USB.
 
-### 4b. Genera `~/.config/opencode/agents/wiki.md` (globale)
+### 4b. Genera `~/.config/opencode/agents/wiki.md` (OpenCode — globale)
 
 Crea la directory `~/.config/opencode/agents/` se non esiste.
 Leggi il template da `{TEMPLATE_SRC}/templates/{TEMPLATE}/AGENTS.md`.
@@ -230,6 +230,18 @@ tools:
 seguito dal contenuto del template AGENTS.md.
 Scrivi anche una copia in `{TARGET}/AGENTS.md`.
 
+### 4c. Genera `~/.hermes/SOUL.md` (Hermes Agent — globale)
+
+Controlla se Hermes è installato: `hermes --version 2>/dev/null` o `ls ~/.hermes/`.
+Se presente:
+- Crea la directory `~/.hermes/` se non esiste
+- Leggi il template da `{TEMPLATE_SRC}/templates/{TEMPLATE}/HERMES.md`
+- Sostituisci **tutte** le occorrenze di `{wiki-root}` con `{TARGET}` (forward slash)
+- Scrivi il contenuto in `~/.hermes/SOUL.md`
+- Scrivi anche una copia in `{TARGET}/HERMES.md` come backup sull'USB
+
+Se Hermes non è installato: salta silenziosamente questo step.
+
 ---
 
 ## Step 5: Installa comandi
@@ -246,6 +258,11 @@ Scrivi anche una copia in `{TARGET}/AGENTS.md`.
   ---
   ```
   seguito dallo stesso contenuto del comando Claude Code.
+
+**Hermes Agent** — se `~/.hermes/` esiste, crea in `~/.hermes/skills/llm-dashboard/`:
+- `SKILL.md` con il contenuto di `{TEMPLATE_SRC}/commands/llm-dashboard-hermes.md`
+
+Questo registra `/llm-dashboard` come slash command in Hermes automaticamente.
 
 ---
 
@@ -273,9 +290,11 @@ Se Python non è disponibile: avvisa l'utente che dovrà eseguire sync.py manual
 Target:     {TARGET}
 Template:   {TEMPLATE}
 Pagine:     {N} pagine, {L} link
-CLAUDE.md:  ~/.claude/CLAUDE.md creato (globale)
-OpenCode:   ~/.config/opencode/agents/wiki.md creato
-Comandi:    /install-portable-wiki  /llm-dashboard
+
+Claude Code:   ~/.claude/CLAUDE.md creato (globale)
+OpenCode:      ~/.config/opencode/agents/wiki.md creato
+Hermes Agent:  ~/.hermes/SOUL.md creato (globale) [se installato]
+Comandi:       /install-portable-wiki  /llm-dashboard
 
 Uso:
   /llm-dashboard     — Apri il grafo 3D nel browser
@@ -283,5 +302,5 @@ Uso:
   Query:  "cosa so su [argomento]?"
   Lint:   "controlla la wiki per link rotti e contraddizioni"
 
-Da qualsiasi directory Claude trova automaticamente la wiki in {TARGET}.
+Da qualsiasi directory Claude Code, OpenCode e Hermes trovano automaticamente la wiki in {TARGET}.
 ```
