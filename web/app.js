@@ -174,8 +174,11 @@
   const Theme = {
     init() {
       const saved = store.get("theme", null);
+      /* Se la pagina e' incorporata da un host che ha gia' stampato data-theme
+         (anteprima, iframe), rispettalo finche' l'utente non sceglie. */
+      const host = document.documentElement.getAttribute("data-theme");
       const sys = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-      this.apply(saved || (sys ? "light" : "dark"));
+      this.apply(saved || host || (sys ? "light" : "dark"));
     },
     apply(mode) {
       document.documentElement.setAttribute("data-theme", mode);
