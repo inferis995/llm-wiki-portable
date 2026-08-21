@@ -36,6 +36,24 @@ def ordered_categories(wiki_directory):
     return declared + [c for c in detected if c not in declared]
 
 
+def recent_log(wiki_directory, limit=40):
+    """Ultime voci del log, cosi' la dashboard puo' mostrare una timeline."""
+    path = os.path.join(wiki_directory, 'log.md')
+    if not os.path.isfile(path):
+        return []
+    try:
+        import log as log_mod
+        entries = log_mod.read_entries(path)[-limit:]
+    except Exception:  # noqa: BLE001
+        return []
+    return [{
+        'date': e['date'],
+        'kind': e['kind'],
+        'title': e['title'],
+        'details': e['details'][:6],
+    } for e in reversed(entries)]
+
+
 def build_data(wiki_directory):
     pages = W.resolve_graph(W.load_pages(wiki_directory))
 
@@ -78,6 +96,7 @@ def build_data(wiki_directory):
         'pages': out_pages,
         'categories': {c: colors.get(c, W.FALLBACK_COLOR) for c in all_cats},
         'tags': dict(sorted(tags.items(), key=lambda kv: (-kv[1], kv[0]))),
+        'log': recent_log(wiki_directory),
         'health': {
             'broken_links': broken,
             'orphans': orphans,

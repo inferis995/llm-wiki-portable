@@ -26,14 +26,14 @@ CODE_FENCE_RE = re.compile(r'```.*?```', re.DOTALL)
 INLINE_CODE_RE = re.compile(r'`[^`\n]*`')
 
 PALETTE = [
-    "#3b82f6",  # blue
-    "#22c55e",  # green
-    "#f59e0b",  # amber
-    "#a855f7",  # purple
-    "#ef4444",  # red
-    "#06b6d4",  # cyan
-    "#f97316",  # orange
-    "#ec4899",  # pink
+    "#5b8cff",  # blu
+    "#35c99a",  # verde acqua
+    "#e8a33d",  # ambra
+    "#a97bf0",  # viola
+    "#ef6b7a",  # rosa
+    "#3fb6d8",  # ciano
+    "#e08048",  # arancio
+    "#d86fb0",  # magenta
 ]
 FALLBACK_COLOR = "#6b7280"
 

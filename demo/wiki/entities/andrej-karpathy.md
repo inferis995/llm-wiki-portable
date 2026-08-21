@@ -3,8 +3,7 @@ created: 2026-01-06
 updated: 2026-04-05
 tags: [person, researcher, educator]
 ---
-
-## Andrej Karpathy
+# Andrej Karpathy
 
 Ricercatore AI, ex-direttore AI di Tesla, ex-OpenAI. Autore del metodo [[llm-wiki-method]] e di risorse educative fondamentali su LLM.
 

@@ -3,8 +3,7 @@ created: 2026-02-05
 updated: 2026-04-20
 tags: [architecture, memory, limitation]
 ---
-
-## Context Window
+# Context Window
 
 **Tesi**: la dimensione del context window è il principale fattore limitante dei LLM per task che richiedono elaborazione di documenti lunghi — ma più contesto non significa necessariamente migliore comprensione.
 

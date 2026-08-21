@@ -4,8 +4,7 @@ updated: 2026-04-22
 tags: [training, adaptation, lora]
 title: Fine-Tuning
 ---
-
-## Fine-Tuning
+# Fine-Tuning
 
 **Tesi**: il fine-tuning su dati di dominio specifico è il metodo più efficace per adattare un LLM a task specializzate — ma richiede dati di qualità, non quantità.
 

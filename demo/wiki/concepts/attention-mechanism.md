@@ -3,8 +3,7 @@ created: 2026-01-12
 updated: 2026-03-25
 tags: [mechanism, deep-learning, core]
 ---
-
-## Attention Mechanism
+# Attention Mechanism
 
 **Tesi**: il meccanismo di attenzione permette al modello di pesare dinamicamente le relazioni tra tutti i token, superando il bottleneck del contesto fisso nelle RNN.
 

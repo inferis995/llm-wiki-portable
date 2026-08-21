@@ -4,8 +4,7 @@ updated: 2026-04-10
 tags: [company, ai-lab, usa]
 title: OpenAI
 ---
-
-## OpenAI
+# OpenAI
 
 Lab AI fondato nel 2015, creatore di [[gpt-4]] e della serie GPT. Ha pionierizzato [[reinforcement-learning-from-human-feedback]] con [[src-rlhf-paper]].
 

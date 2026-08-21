@@ -6,7 +6,6 @@ confidence: high
 sources: [[src-attention-is-all-you-need]]
 tags: [llm, modello, openai]
 ---
-
 # GPT-4
 
 Modello linguistico di [[openai]], erede diretto della linea GPT e della

@@ -5,8 +5,7 @@ tags: [paper, transformer, attention]
 sources: []
 title: Attention Is All You Need
 ---
-
-## Attention Is All You Need
+# Attention Is All You Need
 
 **Tesi**: il meccanismo di [[attention-mechanism]] è sufficiente a costruire modelli di sequenza potenti, eliminando la necessità di reti ricorrenti o convolutive.
 

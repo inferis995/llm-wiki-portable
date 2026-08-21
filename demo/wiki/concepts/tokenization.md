@@ -3,8 +3,7 @@ created: 2026-02-10
 updated: 2026-03-30
 tags: [preprocessing, nlp, bpe]
 ---
-
-## Tokenization
+# Tokenization
 
 **Tesi**: la scelta del tokenizer ha impatti profondi su performance, efficienza e limitazioni del modello — BPE è lo standard de facto ma ha difetti non ovvi.
 

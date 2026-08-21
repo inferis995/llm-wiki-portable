@@ -4,8 +4,7 @@ updated: 2026-02-20
 tags: [paper, scaling, chinchilla]
 title: Scaling Laws for Neural Language Models
 ---
-
-## Scaling Laws for Neural Language Models
+# Scaling Laws for Neural Language Models
 
 **Tesi**: la performance dei modelli linguistici scala in modo prevedibile con compute, dati e parametri — la legge Chinchilla ottimale è 20 token per parametro.
 

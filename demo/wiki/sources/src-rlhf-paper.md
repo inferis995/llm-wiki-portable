@@ -4,7 +4,6 @@ updated: 2026-03-01
 tags: [paper, rlhf, alignment]
 title: InstructGPT — Training Language Models to Follow Instructions
 ---
-
 ## InstructGPT
 
 **Tesi**: il [[reinforcement-learning-from-human-feedback]] (RLHF) allinea i modelli alle intenzioni umane molto più efficacemente del semplice fine-tuning supervisionato.

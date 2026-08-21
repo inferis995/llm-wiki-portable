@@ -6,7 +6,6 @@ confidence: medium
 sources: [[src-attention-is-all-you-need]]
 tags: [llm, modello, google]
 ---
-
 # Gemini
 
 Famiglia di modelli multimodali di [[google-deepmind]], nativamente addestrata

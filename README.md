@@ -49,7 +49,9 @@ del modello.
 ## Features
 
 - **L'agente non dimentica** — hook e plugin, non solo istruzioni in prosa
-- **Grafo 3D** — force-directed, colorato per categoria, con pannello Health
+- **Grafo 3D** — nodi illuminati, vicinato in evidenza, 2D/3D, filtri per categoria e tag
+- **Quattro viste** — grafo, pagina con backlink, panoramica, timeline delle attività
+- **Command palette** — `⌘K` per cercare pagine, tag e azioni
 - **Portatile davvero** — la wiki si ritrova anche se la chiavetta cambia lettera
 - **Chiavetta autosufficiente** — install, skill e tool viaggiano sull'USB
 - **Ricerca BM25 + lint** — CLI a dipendenze zero, non solo `grep`
@@ -222,14 +224,59 @@ sei mesi sapere *perché* qualcosa è cambiato vale quanto il fatto stesso.
 
 ## Dashboard
 
+Quattro viste sulla stessa knowledge base, in un'app statica senza build step.
+
+### Grafo 3D
+
+Nodi illuminati (materiali PBR, non cerchi piatti), dimensione proporzionale alle
+connessioni, link curvi. Passando sul nodo: **il vicinato si accende e il resto
+si spegne**, con una scheda che mostra estratto, link, backlink e lunghezza.
+
+Controlli: **Focus** isola il vicinato · **Etichette** le mostra tutte ·
+**2D/3D** · **Inquadra**. Clic sulla legenda per mostrare/nascondere una categoria.
+
+### Pagina
+
 <p align="center">
-  <img src="docs/dashboard.webp" alt="Dashboard — grafo 3D con sidebar" width="700">
+  <img src="docs/page-view.webp" alt="Vista pagina — indice, backlink, correlate" width="700">
 </p>
 
-Grafo 3D colorato per categoria, sidebar con ricerca su titoli, tag e contenuto,
-filtro per tag, e **pannello Health** con link rotti e pagine orfane.
+Tipografia da lettura, e nella colonna laterale quello che nella wiki conta:
+**indice della pagina**, **backlink** (chi la cita), **collegamenti in uscita** e
+**pagine con tag in comune**. In testa: `confidence`, `verified`, e i pulsanti
+Copia link / Obsidian / File / Stampa. I wikilink rotti sono segnati in rosso
+sia in linea sia in un avviso in cima.
 
-Tasti: `/` cerca · `h` Health · `Esc` torna al grafo.
+### Panoramica
+
+<p align="center">
+  <img src="docs/overview.webp" alt="Panoramica — statistiche e distribuzione" width="700">
+</p>
+
+Pagine, collegamenti, parole, tag, link rotti, orfane. Distribuzione per
+categoria, pagine più collegate, aggiornate di recente, nuvola di tag.
+
+### Attività e Salute
+
+**Attività** è la timeline di `wiki/log.md`: come la wiki è cresciuta, con i
+link alle pagine create e distillate a ogni ingest.
+**Salute** elenca link rotti, orfane, pagine troppo lunghe e senza tag, ognuna
+cliccabile.
+
+### Comandi rapidi e scorciatoie
+
+`⌘K` / `Ctrl+K` apre la **command palette**: cerca pagine, filtra per tag,
+esegue azioni. `⇥` porta la stessa query alla ricerca completa, con anteprime ed
+evidenziazione.
+
+| | |
+|---|---|
+| `⌘K` cerca ed esegui | `?` scorciatoie |
+| `g` grafo · `o` panoramica · `a` attività · `h` salute | `t` tema chiaro/scuro |
+| `0` inquadra · `d` 2D/3D · `l` etichette · `f` focus | `s` sidebar · `Esc` indietro |
+
+Tema chiaro e scuro (segue il sistema, si può forzare), responsive fino al
+mobile, e stampa pulita della pagina aperta.
 
 <details>
 <summary>OpenCode con i comandi</summary>

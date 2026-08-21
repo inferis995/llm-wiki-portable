@@ -4,8 +4,7 @@ updated: 2026-04-01
 tags: [method, knowledge-base, karpathy]
 title: Karpathy LLM Wiki Method
 ---
-
-## Karpathy LLM Wiki Method
+# Karpathy LLM Wiki Method
 
 **Tesi**: usare un LLM come compilatore incrementale di una knowledge base strutturata è più efficace di qualsiasi sistema RAG con embedding.
 

@@ -6,7 +6,6 @@ confidence: high
 sources: [[src-attention-is-all-you-need]]
 tags: [llm, modello, anthropic]
 ---
-
 # Claude
 
 Famiglia di modelli linguistici di [[anthropic]], costruita sull'architettura

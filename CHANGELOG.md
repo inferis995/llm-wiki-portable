@@ -78,6 +78,30 @@ Equivalente OpenCode: plugin `wiki-sync.js` (`chat.params` + `tool.execute.after
 - **Wiki demo riproducibile**: le 22 pagine di GitHub Pages vivono in `demo/` e
   la CI verifica che `web/data.js` sia allineato.
 
+### Dashboard riprogettata
+
+- **Grafo 3D rifatto**: `MeshStandardMaterial` con luci (key, rim, hemisphere),
+  emissive e alone additivo al posto dei `MeshBasicMaterial` piatti della v1 —
+  i nodi hanno volume vero. Fog per la profondita', link curvi, forza di
+  collisione, campo stellare di sfondo.
+- **Evidenziazione del vicinato**: al passaggio del mouse i vicini si accendono
+  e il resto si spegne; scheda del nodo con estratto, link, backlink e lunghezza.
+- **Controlli del grafo**: Focus (isola il vicinato), etichette sempre visibili,
+  **2D/3D**, inquadra tutto, legenda cliccabile per filtrare le categorie.
+- **Vista pagina**: indice della pagina, **backlink** (dato gia' presente nella
+  v1 ma mai mostrato), collegamenti in uscita, pagine con tag in comune, badge
+  di `confidence`/`verified`, link a Obsidian e al file, stampa.
+- **Panoramica**: statistiche, distribuzione per categoria, pagine piu'
+  collegate, aggiornate di recente, nuvola di tag.
+- **Attivita'**: timeline di `wiki/log.md`, ora esportato in `data.json`.
+- **Ricerca a tutta pagina** con anteprime, evidenziazione e ranking allineato a
+  `tools/search.py`; prima la sidebar filtrava soltanto.
+- **Command palette** (`⌘K`): pagine, tag e azioni in un solo posto.
+- **Tema chiaro** completo con toggle, piu' scorciatoie da tastiera, layout
+  responsive e stampa pulita.
+- `index.md` e `log.md` non compaiono piu' nel grafo, nei backlink, nella
+  ricerca e nei conteggi: l'index linka ogni pagina e falsava tutto.
+
 ### Modificato
 
 - **Template**: 15 file quasi identici (5 template x CLAUDE/AGENTS/HERMES)
@@ -87,6 +111,8 @@ Equivalente OpenCode: plugin `wiki-sync.js` (`chat.params` + `tool.execute.after
 - **Lingua selezionabile** in installazione (`--lang it|en`).
 - **Colori del grafo stabili**: seguono l'ordine dichiarato dal template, non
   l'ordine alfabetico che li faceva cambiare a ogni cartella aggiunta.
+- **Palette rivista**: luminanze piu' equilibrate, meno saturazione — i primari
+  della v1 su fondo scuro rendevano il grafo un grafico a torta.
 - `sync.py` alla root resta come shim: l'implementazione e' in `tools/sync.py`.
 
 ## [1.x] — 2026

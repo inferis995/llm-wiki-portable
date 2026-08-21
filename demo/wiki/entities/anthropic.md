@@ -3,8 +3,7 @@ created: 2026-01-09
 updated: 2026-04-12
 tags: [company, ai-lab, safety]
 ---
-
-## Anthropic
+# Anthropic
 
 Lab AI fondato nel 2021 da ex-OpenAI, creatore della famiglia [[claude]]. Focus su AI safety e interpretabilità.
 

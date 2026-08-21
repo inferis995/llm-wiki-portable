@@ -4,8 +4,7 @@ updated: 2026-04-15
 tags: [prompting, reasoning, technique]
 title: Chain-of-Thought Prompting
 ---
-
-## Chain-of-Thought Prompting
+# Chain-of-Thought Prompting
 
 **Tesi**: spingere l'LLM a ragionare step-by-step prima della risposta finale migliora drammaticamente performance su task complesse — soprattutto matematica e logica.
 

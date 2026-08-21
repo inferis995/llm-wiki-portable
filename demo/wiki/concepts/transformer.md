@@ -4,8 +4,7 @@ updated: 2026-04-08
 tags: [architecture, deep-learning, foundational]
 title: Transformer Architecture
 ---
-
-## Transformer Architecture
+# Transformer Architecture
 
 **Tesi**: l'architettura Transformer basata su self-attention è la base universale di tutti i moderni LLM, superiore a RNN e CNN per sequenze.
 

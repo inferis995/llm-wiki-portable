@@ -9,7 +9,7 @@ generated: auto (sync.py --rebuild-index)
 
 > Generato automaticamente da `sync.py --rebuild-index`. Non modificare a mano.
 
-22 pagine · 85 link · 0 link rotti · 0 orfani
+23 pagine · 85 link · 0 link rotti · 0 orfani
 
 ## comparisons
 

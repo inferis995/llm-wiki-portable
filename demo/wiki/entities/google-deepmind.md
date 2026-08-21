@@ -4,8 +4,7 @@ updated: 2026-03-20
 tags: [company, research, google]
 title: Google DeepMind
 ---
-
-## Google DeepMind
+# Google DeepMind
 
 Merge di Google Brain e DeepMind (2023). Autori di [[src-attention-is-all-you-need]] e [[src-scaling-laws]] (Chinchilla). Creatori di Gemini.
 
