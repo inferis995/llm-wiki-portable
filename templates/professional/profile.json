@@ -1,0 +1,17 @@
+{
+  "name": "professional",
+  "label": {
+    "it": "Avvocato, commercialista, consulente, medico",
+    "en": "Lawyer, accountant, consultant, doctor"
+  },
+  "folders": [
+    {"dir": "clients", "prefix": "cli-", "desc": {"it": "Anagrafica minima e storico dei rapporti", "en": "Minimal profile and relationship history"}},
+    {"dir": "matters", "prefix": "mat-", "desc": {"it": "Pratiche e fascicoli: stato e prossimo passo", "en": "Matters and case files: status and next step"}},
+    {"dir": "deadlines", "prefix": "dl-", "desc": {"it": "Scadenze con data esplicita nel frontmatter", "en": "Deadlines with an explicit date in frontmatter"}},
+    {"dir": "contacts", "prefix": "con-", "desc": {"it": "Controparti, uffici, professionisti terzi", "en": "Counterparties, offices, third-party professionals"}}
+  ],
+  "conventions": {
+    "it": ["Ogni pratica linka il cliente e le sue scadenze.", "Le scadenze hanno `due: YYYY-MM-DD` nel frontmatter e `tags: [scadenza]`.", "**Dati sensibili**: la wiki contiene sintesi e stato pratica, non documenti riservati integrali. Gli originali stanno in `raw/`, che non va mai sincronizzato su servizi cloud pubblici.", "Ogni pratica dichiara sempre qual e' il **prossimo passo** e chi lo deve fare."],
+    "en": ["Every matter links its client and its deadlines.", "Deadlines carry `due: YYYY-MM-DD` in frontmatter and `tags: [deadline]`.", "**Sensitive data**: the wiki holds summaries and matter status, not full confidential documents. Originals stay in `raw/`, which must never be synced to public cloud services.", "Every matter always states the **next step** and who owns it."]
+  }
+}

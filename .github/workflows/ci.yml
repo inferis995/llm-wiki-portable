@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [master, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.8", "3.12"]
+        exclude:
+          - os: macos-latest
+            python: "3.8"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Test suite
+        run: python -m unittest discover -s tests -v
+
+  wiki-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lint della wiki demo (fallisce sui link rotti)
+        run: python tools/lint.py --root demo --strict
+
+      - name: web/data.js deve essere allineato a demo/
+        run: |
+          python tools/sync.py --root demo --output web/data.json --rebuild-index
+          git diff --exit-code -- web/data.js || {
+            echo "::error::web/data.js non e' aggiornato. Esegui: python tools/sync.py --root demo --output web/data.json --rebuild-index"
+            exit 1
+          }
+
+  install-smoke:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installazione in una HOME temporanea
+        shell: bash
+        run: |
+          export HOME="${RUNNER_TEMP}/fakehome"
+          export USERPROFILE="$HOME"
+          mkdir -p "$HOME"
+          python install.py --mode local --target "${RUNNER_TEMP}/wiki" \
+            --template general --lang it --no-git
+          python install.py --mode doctor --target "${RUNNER_TEMP}/wiki"
+
+      - name: Rilancio idempotente
+        shell: bash
+        run: |
+          export HOME="${RUNNER_TEMP}/fakehome"
+          export USERPROFILE="$HOME"
+          python install.py --mode upgrade --target "${RUNNER_TEMP}/wiki" --no-git
+          test "$(grep -c 'BEGIN llm-wiki-portable' "$HOME/.claude/CLAUDE.md")" = "1"

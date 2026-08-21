@@ -1,0 +1,9 @@
+{
+  "llm_wiki_portable": true,
+  "version": "2.0.0",
+  "id": "demo-github-pages",
+  "template": "general",
+  "lang": "it",
+  "folders": ["sources", "entities", "concepts", "comparisons"],
+  "created": "2026-01-01"
+}

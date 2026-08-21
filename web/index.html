@@ -15,6 +15,7 @@
         <h1>LLM Wiki</h1>
       </div>
       <input type="text" id="search" placeholder="Cerca pagine...">
+      <div id="tag-filter"></div>
       <div class="sidebar-pages" id="sidebar-pages"></div>
       <div class="sidebar-footer">
         <span id="page-count">0 pagine</span>
@@ -27,10 +28,12 @@
       <div id="topbar">
         <button id="toggle-sidebar" title="Toggle sidebar">&#9776;</button>
         <button id="back-btn" style="display:none" title="Torna al grafo">&#8592; Grafo</button>
+        <button id="health-btn" title="Salute della wiki (h)">&#9873; Health<span id="health-badge"></span></button>
         <span class="title" id="topbar-title"></span>
         <div class="legend" id="legend"></div>
       </div>
       <div id="graph-container"></div>
+      <div id="health-panel"></div>
       <div id="page-viewer">
         <div class="page-header" id="page-header"></div>
         <div class="prose-wiki" id="page-content"></div>

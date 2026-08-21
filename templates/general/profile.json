@@ -1,0 +1,17 @@
+{
+  "name": "general",
+  "label": {
+    "it": "Uso generico, studio, note, ricerca personale — metodo Karpathy originale",
+    "en": "General use, study, notes, personal research — original Karpathy method"
+  },
+  "folders": [
+    {"dir": "sources", "prefix": "src-", "desc": {"it": "Riassunti distillati delle fonti", "en": "Distilled source summaries"}},
+    {"dir": "entities", "prefix": "", "desc": {"it": "Tool, aziende, persone, prodotti", "en": "Tools, companies, people, products"}},
+    {"dir": "concepts", "prefix": "", "desc": {"it": "Idee, pattern, protocolli", "en": "Ideas, patterns, protocols"}},
+    {"dir": "comparisons", "prefix": "vs-", "desc": {"it": "Confronti A vs B", "en": "A vs B comparisons"}}
+  ],
+  "conventions": {
+    "it": ["Una fonte = una pagina in `sources/`, mai piu' di una.", "I confronti nascono solo quando esistono gia' le pagine delle due cose confrontate."],
+    "en": ["One source = one page in `sources/`, never more.", "Comparisons only after both compared things already have pages."]
+  }
+}

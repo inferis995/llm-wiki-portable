@@ -1,0 +1,18 @@
+{
+  "name": "work",
+  "label": {
+    "it": "Freelance — progetti e clienti",
+    "en": "Freelance — projects and clients"
+  },
+  "folders": [
+    {"dir": "projects", "prefix": "prj-", "desc": {"it": "Un progetto per pagina: stato, scope, decisioni", "en": "One project per page: status, scope, decisions"}},
+    {"dir": "clients", "prefix": "cli-", "desc": {"it": "Un cliente per pagina: contatti, storico, preferenze", "en": "One client per page: contacts, history, preferences"}},
+    {"dir": "meetings", "prefix": "mtg-", "desc": {"it": "Esito e decisioni, non la trascrizione", "en": "Outcomes and decisions, not the transcript"}},
+    {"dir": "tasks", "prefix": "tsk-", "desc": {"it": "Attivita' aperte con scadenza", "en": "Open work items with deadlines"}},
+    {"dir": "resources", "prefix": "res-", "desc": {"it": "Template, snippet, riferimenti riusabili", "en": "Templates, snippets, reusable references"}}
+  ],
+  "conventions": {
+    "it": ["Ogni progetto linka sempre il suo cliente: `[[cli-nome]]`.", "Le pagine meeting registrano le **decisioni**, non il verbale.", "Una task chiusa si distilla nella pagina del progetto e si elimina — `tasks/` contiene solo cose vive.", "Nomi di clienti e progetti reali: niente sigle criptiche."],
+    "en": ["Every project links its client: `[[cli-name]]`.", "Meeting pages record **decisions**, not minutes.", "A closed task is distilled into the project page and removed — `tasks/` holds only live work.", "Use real client and project names, no cryptic codes."]
+  }
+}

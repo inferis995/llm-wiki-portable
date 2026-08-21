@@ -47,6 +47,12 @@
   const legend         = document.getElementById("legend");
   const pageCount      = document.getElementById("page-count");
   const linkCount      = document.getElementById("link-count");
+  const healthPanel    = document.getElementById("health-panel");
+  const healthBtn      = document.getElementById("health-btn");
+  const healthBadge    = document.getElementById("health-badge");
+  const tagFilter      = document.getElementById("tag-filter");
+
+  let activeTag = null;
 
   // ── Init ───────────────────────────────────────────────────
   function init() {
@@ -71,6 +77,8 @@
 
     graphData = buildGraphData(pages);
     buildLegend();
+    buildTagFilter();
+    updateHealthBadge();
     renderSidebar();
     updateStats();
     initGraph();
@@ -175,6 +183,7 @@
     const grouped = {};
 
     pages.forEach((p) => {
+      if (activeTag && !(p.frontmatter.tags || []).includes(activeTag)) return;
       if (q) {
         const matchTitle   = p.title.toLowerCase().includes(q);
         const matchTags    = (p.frontmatter.tags || []).some((t) => t.toLowerCase().includes(q));
@@ -223,6 +232,103 @@
     });
   }
 
+  // ── Path del file sul disco (per Obsidian / file://) ───────
+  function pageFilePath(page) {
+    const root = WIKI_DATA.root;
+    if (!root) return null;
+    const sep = root.includes("\\") ? "\\" : "/";
+    return [root, "wiki", ...page.slug.split("/")].join(sep) + ".md";
+  }
+
+  // ── Tag filter ─────────────────────────────────────────────
+  function buildTagFilter() {
+    if (!tagFilter) return;
+    const tags = WIKI_DATA.tags || {};
+    const top = Object.keys(tags).slice(0, 12);
+    if (top.length === 0) { tagFilter.innerHTML = ""; return; }
+
+    tagFilter.innerHTML = top
+      .map((t) => `<span class="tag-chip${activeTag === t ? " active" : ""}" data-tag="${t}">${t} <b>${tags[t]}</b></span>`)
+      .join("");
+
+    tagFilter.querySelectorAll(".tag-chip").forEach((el) => {
+      el.addEventListener("click", () => {
+        activeTag = activeTag === el.dataset.tag ? null : el.dataset.tag;
+        buildTagFilter();
+        renderSidebar(searchInput.value);
+      });
+    });
+  }
+
+  // ── Health ─────────────────────────────────────────────────
+  function healthData() {
+    const h = WIKI_DATA.health || {};
+    return { broken: h.broken_links || [], orphans: h.orphans || [] };
+  }
+
+  function updateHealthBadge() {
+    if (!healthBadge) return;
+    const { broken, orphans } = healthData();
+    const total = broken.length + orphans.length;
+    healthBadge.textContent = total ? ` ${total}` : "";
+    healthBadge.className = broken.length ? "badge error" : (total ? "badge warn" : "");
+  }
+
+  function renderHealth() {
+    if (!healthPanel) return;
+    const { broken, orphans } = healthData();
+    const stats = WIKI_DATA.stats || {};
+
+    let html = `<div class="health-head">
+      <h2>Salute della wiki</h2>
+      <span class="health-meta">${stats.total_pages || 0} pagine · ${stats.total_links || 0} link${
+        WIKI_DATA.generated_at ? " · sync " + WIKI_DATA.generated_at.replace("T", " ") : ""
+      }</span>
+    </div>`;
+
+    if (!broken.length && !orphans.length) {
+      html += `<p class="health-ok">Nessun problema rilevato. La wiki è in salute.</p>`;
+    }
+
+    if (broken.length) {
+      html += `<h3 class="health-error">Link rotti (${broken.length})</h3>
+        <p class="health-hint">Wikilink che puntano a pagine inesistenti. Chiedi all'agente: <code>/llm-wiki-lint</code></p><ul class="health-list">`;
+      broken.forEach((b) => {
+        html += `<li><a href="#${encodeURIComponent(b.from)}" data-slug="${b.from}">${b.from}</a> → <code>[[${b.target}]]</code></li>`;
+      });
+      html += `</ul>`;
+    }
+
+    if (orphans.length) {
+      html += `<h3 class="health-warn">Pagine orfane (${orphans.length})</h3>
+        <p class="health-hint">Nessuna pagina le collega: nel grafo sono isolate e nella pratica si perdono.</p><ul class="health-list">`;
+      orphans.forEach((slug) => {
+        html += `<li><a href="#${encodeURIComponent(slug)}" data-slug="${slug}">${slug}</a></li>`;
+      });
+      html += `</ul>`;
+    }
+
+    healthPanel.innerHTML = html;
+    healthPanel.querySelectorAll("a[data-slug]").forEach((el) => {
+      el.addEventListener("click", (e) => { e.preventDefault(); navigateTo(el.dataset.slug); });
+    });
+  }
+
+  function showHealth() {
+    renderHealth();
+    activeSlug = null;
+    healthPanel.classList.add("active");
+    pageViewer.classList.remove("active");
+    graphContainer.style.display = "none";
+    backBtn.style.display = "";
+    topbarTitle.textContent = "Health";
+  }
+
+  function toggleHealth() {
+    if (healthPanel.classList.contains("active")) showGraph();
+    else showHealth();
+  }
+
   // ── Stats ──────────────────────────────────────────────────
   function updateStats() {
     const realLinks = graphData.links.filter((l) => !l.__virtual).length;
@@ -233,6 +339,7 @@
   // ── Navigation ─────────────────────────────────────────────
   function navigateTo(slug, updateHash = true) {
     activeSlug = slug;
+    if (healthPanel) healthPanel.classList.remove("active");
     if (updateHash)
       history.pushState(null, "", "#" + encodeURIComponent(slug));
     renderSidebar(searchInput.value);
@@ -263,9 +370,24 @@
       `<h2>${page.title}</h2><div class="meta">`;
     if (page.frontmatter.updated)
       headerHtml += `Aggiornato: ${page.frontmatter.updated}`;
+    if (page.frontmatter.verified)
+      headerHtml += ` · Verificato: ${page.frontmatter.verified}`;
+    if (page.frontmatter.confidence)
+      headerHtml += ` · Confidence: <b class="conf conf-${page.frontmatter.confidence}">${page.frontmatter.confidence}</b>`;
     if (page.frontmatter.sources)
       headerHtml += ` · Fonti: ${page.frontmatter.sources}`;
+
+    const filePath = pageFilePath(page);
+    if (filePath) {
+      headerHtml += ` · <a class="ext-link" href="obsidian://open?path=${encodeURIComponent(filePath)}" title="${filePath}">Apri in Obsidian</a>`;
+      headerHtml += ` · <a class="ext-link" href="file://${filePath.split("\\").join("/")}">File</a>`;
+    }
     headerHtml += "</div>";
+
+    if (page.broken_links?.length) {
+      headerHtml += `<div class="page-warning">Link rotti in questa pagina: ` +
+        page.broken_links.map((t) => `<code>[[${t}]]</code>`).join(" ") + `</div>`;
+    }
 
     if (page.frontmatter.tags?.length) {
       headerHtml += '<div class="tags">';
@@ -314,6 +436,7 @@
     activeSlug = null;
     history.pushState(null, "", location.pathname + location.search);
     pageViewer.classList.remove("active");
+    if (healthPanel) healthPanel.classList.remove("active");
     graphContainer.style.display = "block";
     backBtn.style.display = "none";
     topbarTitle.textContent = "";
@@ -538,6 +661,7 @@
   function bindEvents() {
     searchInput.addEventListener("input", () => renderSidebar(searchInput.value));
     backBtn.addEventListener("click", showGraph);
+    if (healthBtn) healthBtn.addEventListener("click", toggleHealth);
     toggleBtn.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
     // Reset idle on any graph interaction
@@ -560,6 +684,13 @@
         e.preventDefault();
         searchInput.focus();
         searchInput.select();
+        return;
+      }
+      if ((e.key === "h" || e.key === "H") &&
+          document.activeElement !== searchInput &&
+          document.activeElement.tagName !== "INPUT") {
+        e.preventDefault();
+        toggleHealth();
         return;
       }
       if (e.key === "Escape") {
