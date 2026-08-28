@@ -447,6 +447,7 @@
       this.ready = true;
 
       this.paint();
+      this.applyCameraMode();
       this.fg.onEngineStop(() => this.settle());
       setTimeout(() => this.settle(), 5000);
 
@@ -844,11 +845,78 @@
 
     toggle2d() {
       this.is2d = !this.is2d;
+      this.fitted = false;
       this.fg.numDimensions(this.is2d ? 2 : 3);
-      $('[data-action="mode2d"]').classList.toggle("is-on", this.is2d);
-      $('[data-action="mode2d"]').textContent = this.is2d ? "3D" : "2D";
-      setTimeout(() => this.fit(600), 700);
-      toast(this.is2d ? "Vista 2D" : "Vista 3D");
+      this.applyCameraMode();
+
+      const btn = $('[data-action="mode2d"]');
+      btn.classList.toggle("is-on", this.is2d);
+      btn.textContent = this.is2d ? "3D" : "2D";
+      $("#graph-hint").innerHTML = this.is2d
+        ? "trascina per spostare · rotella per zoomare<br>clic su un nodo per aprirlo"
+        : "trascina per ruotare · rotella per zoomare<br>clic su un nodo per aprirlo";
+
+      // Il fit va fatto a layout fermo: con numDimensions cambiate la
+      // simulazione riparte, e inquadrare a meta' corsa lascia il grafo
+      // fuori campo.
+      this.fg.d3ReheatSimulation();
+      setTimeout(() => this.settle(), 2600);
+
+      toast(this.is2d ? "Vista 2D — trascina per spostare" : "Vista 3D");
+    },
+
+    /* In 2D il grafo e' un piano z=0: se la camera orbita lo inquadra di taglio
+       e il grafo si riduce a una riga, fino a sparire. Quindi in 2D si fa pan e
+       zoom, mai rotazione — ne' col mouse ne' con la rotazione automatica. */
+    applyCameraMode() {
+      const controls = this.fg.controls();
+      if (!controls) return;
+
+      // Sono TrackballControls (default di 3d-force-graph), non OrbitControls:
+      // le proprieta' sono noRotate/noPan/staticMoving, non enableRotate.
+      if (this.is2d) {
+        controls.noRotate = true;
+        // Senza staticMoving il pan continua ad applicarsi con smorzamento per
+        // decine di frame dopo il rilascio, e un trascinamento breve manda il
+        // grafo fuori campo.
+        controls.staticMoving = true;
+        controls.panSpeed = 0.2;   // calibrato 1:1 col cursore
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN,
+        };
+        controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
+        this.faceOn();
+      } else {
+        controls.noRotate = false;
+        controls.staticMoving = false;
+        controls.dynamicDampingFactor = 0.2;
+        controls.panSpeed = 0.3;
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN,
+        };
+        controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+      }
+    },
+
+    /* Riporta la camera sull'asse z, perpendicolare al piano del grafo. */
+    faceOn() {
+      const cam = this.fg.cameraPosition();
+      const dist = Math.hypot(cam.x, cam.y, cam.z) || 400;
+      const c = this.centroid();
+      this.fg.cameraPosition({ x: c.x, y: c.y, z: c.z + dist }, c, 500);
+    },
+
+    centroid() {
+      const now = Date.now();
+      if (this._cen && now - this._cenAt < 500) return this._cen;
+      const nodes = this.fg.graphData().nodes.filter((n) => n.x != null && this.isVisible(n));
+      if (!nodes.length) return { x: 0, y: 0, z: 0 };
+      const sum = nodes.reduce((a, n) => ({
+        x: a.x + n.x, y: a.y + (n.y || 0), z: a.z + (n.z || 0),
+      }), { x: 0, y: 0, z: 0 });
+      this._cen = { x: sum.x / nodes.length, y: sum.y / nodes.length, z: sum.z / nodes.length };
+      this._cenAt = now;
+      return this._cen;
     },
 
     toggleLabels() {
@@ -882,24 +950,32 @@
       }, 200));
     },
 
-    /* Rotazione lenta quando l'utente è fermo: dà volume alla scena
-       senza rubare il controllo appena tocca qualcosa. */
+    /* Rotazione lenta quando l'utente è fermo: dà volume alla scena senza
+       rubare il controllo appena tocca qualcosa.
+
+       Solo in 3D — in 2D porterebbe il piano di taglio. E orbita attorno al
+       centroide conservando quota e distanza: attorno all'origine, una camera
+       spostata dall'utente veniva riportata di forza sull'equatore. */
     loop() {
       const IDLE = 9000, SPEED = 0.00045;
       const tick = () => {
         requestAnimationFrame(tick);
-        if (!this.ready || S.view !== "graph" || this.selected) return;
+        if (!this.ready || this.is2d || S.view !== "graph" || this.selected) return;
         if (Date.now() - this.idleAt < IDLE) return;
+
+        const c = this.centroid();
         const cam = this.fg.cameraPosition();
-        const r = Math.hypot(cam.x, cam.z) || 300;
-        this.angle += SPEED * (300 / Math.max(r, 60));
+        const dx = cam.x - c.x, dz = cam.z - c.z;
+        const r = Math.hypot(dx, dz);
+        if (r < 1) return;
+
+        const angle = Math.atan2(dx, dz) + SPEED * (300 / Math.max(r, 60));
         this.fg.cameraPosition({
-          x: r * Math.sin(this.angle),
-          z: r * Math.cos(this.angle),
-        });
+          x: c.x + r * Math.sin(angle),
+          y: cam.y,
+          z: c.z + r * Math.cos(angle),
+        }, c);
       };
-      const cam = this.fg.cameraPosition();
-      this.angle = Math.atan2(cam.x, cam.z);
       requestAnimationFrame(tick);
     },
   };
