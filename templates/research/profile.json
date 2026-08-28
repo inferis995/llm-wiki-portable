@@ -1,0 +1,18 @@
+{
+  "name": "research",
+  "label": {
+    "it": "Ricercatore, giornalista, dottorando, analista",
+    "en": "Researcher, journalist, PhD student, analyst"
+  },
+  "folders": [
+    {"dir": "sources", "prefix": "src-", "desc": {"it": "Paper, articoli, interviste — una fonte per pagina", "en": "Papers, articles, interviews — one source per page"}},
+    {"dir": "insights", "prefix": "ins-", "desc": {"it": "Tesi proprie, sostenute da fonti", "en": "Your own claims, backed by sources"}},
+    {"dir": "topics", "prefix": "top-", "desc": {"it": "Aree tematiche che aggregano insight", "en": "Topic areas aggregating insights"}},
+    {"dir": "people", "prefix": "per-", "desc": {"it": "Autori, ricercatori, testimoni", "en": "Authors, researchers, witnesses"}},
+    {"dir": "output", "prefix": "out-", "desc": {"it": "Bozze di articoli, capitoli, report", "en": "Drafts of articles, chapters, reports"}}
+  ],
+  "conventions": {
+    "it": ["Ogni pagina in `insights/` **deve** avere almeno una fonte nel frontmatter: una tesi senza fonte non e' un insight, e' un'opinione.", "`confidence: low` finche' una sola fonte la sostiene.", "Le fonti che si contraddicono si tengono entrambe, con la posizione scelta motivata e l'altra sotto `## Superato`.", "In `output/` si linkano gli insight, non si riscrivono: il testo finale cita la wiki."],
+    "en": ["Every page in `insights/` **must** carry at least one source in frontmatter: a claim without a source is an opinion, not an insight.", "`confidence: low` while a single source supports it.", "Contradicting sources are both kept, with the chosen position justified and the other under `## Superseded`.", "`output/` links insights rather than restating them: the final text cites the wiki."]
+  }
+}

@@ -10,9 +10,8 @@
   <a href="https://github.com/inferis995/llm-wiki-portable/stargazers"><img src="https://img.shields.io/github/stars/inferis995/llm-wiki-portable?style=social" alt="Stars"></a>
   <a href="https://github.com/inferis995/llm-wiki-portable/blob/master/LICENSE"><img src="https://img.shields.io/github/license/inferis995/llm-wiki-portable?color=blue" alt="License"></a>
   <img src="https://img.shields.io/github/last-commit/inferis995/llm-wiki-portable?color=orange" alt="Last Commit">
-  <img src="https://img.shields.io/github/repo-size/inferis995/llm-wiki-portable?color=green" alt="Repo Size">
   <img src="https://img.shields.io/badge/python-3.8+-blue?logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/platform-USB%20%7C%20Local-blueviolet" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-USB%20%7C%20Local%20%7C%20Cloud-blueviolet" alt="Platform">
   <img src="https://img.shields.io/badge/works%20offline-yes-success" alt="Offline">
 </p>
 
@@ -22,188 +21,310 @@
   <a href="https://inferis995.github.io/llm-wiki-portable/">📊 Demo Graph (GitHub Pages)</a>
 </p>
 
-Your personal AI-powered knowledge base — on a USB stick or any folder.
+Una knowledge base personale che il tuo agente AI **usa davvero** — su chiavetta
+USB, cartella locale o cloud.
 
-Based on the [Karpathy LLM Wiki method](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Works with **Claude Code**, **OpenCode**, and **Hermes Agent**. Write markdown pages with `[[wikilinks]]`, visualize them as a 3D graph, and carry everything on a USB drive. Ask your AI to ingest sources, query your knowledge base, and generate new pages automatically.
+Basata sul [metodo LLM Wiki di Karpathy](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f):
+l'LLM non ricerca le fonti a ogni domanda (come il RAG), le **compila** una volta
+in pagine markdown collegate da `[[wikilink]]`, e da lì in poi risponde da quelle.
+
+## Perché la v2
+
+La v1 metteva le istruzioni in un file di contesto e sperava che il modello le
+seguisse. Nella pratica se ne dimenticava: non consultava la wiki, non salvava,
+non lanciava il sync.
+
+La v2 rende tutto questo **automatico**:
+
+| | Succede da solo |
+|---|---|
+| **Ogni sessione** | l'agente riceve indice della wiki e ultime operazioni |
+| **"cosa so su X?"** | la wiki viene cercata e iniettata **prima** che risponda |
+| **Ogni scrittura in `wiki/`** | il grafo si risincronizza |
+| **Fine sessione** | auto-commit git; se avevi chiesto di salvare e non è stato scritto nulla, te lo dice |
+
+Su Claude Code sono quattro hook, su OpenCode un plugin. Non è più una scelta
+del modello.
 
 ## Features
 
-- **3D Knowledge Graph** — Interactive force-directed graph, color-coded by category
-- **AI-Powered** — Claude Code, OpenCode, or Hermes Agent read, write, and query the wiki for you
-- **USB Portable** — Plug into any PC, run one command, done
-- **Markdown + Wikilinks** — `[[page-links]]` like Obsidian, backlinks auto-generated
-- **Offline** — Static HTML/JS, works with `file://`, no server needed
-- **Python 3.8+** — No external dependencies beyond Python for the core
+- **L'agente non dimentica** — hook e plugin, non solo istruzioni in prosa
+- **Grafo 3D** — nodi illuminati, vicinato in evidenza, 2D/3D, filtri per categoria e tag
+- **Quattro viste** — grafo, pagina con backlink, panoramica, timeline delle attività
+- **Command palette** — `⌘K` per cercare pagine, tag e azioni
+- **Portatile davvero** — la wiki si ritrova anche se la chiavetta cambia lettera
+- **Chiavetta autosufficiente** — install, skill e tool viaggiano sull'USB
+- **Ricerca BM25 + lint** — CLI a dipendenze zero, non solo `grep`
+- **Ingest PDF / DOCX / URL / immagini**
+- **Versionata con git** — la distillazione riscrive, git ti fa tornare indietro
+- **Offline** — HTML/JS statico, funziona con `file://`
+- **Python 3.8+**, nessuna dipendenza esterna
 
-## Dashboard
-
-<p align="center">
-  <img src="docs/dashboard.webp" alt="Dashboard — 3D Knowledge Graph with sidebar navigation" width="700">
-</p>
-
-Interactive 3D graph with color-coded categories: **Fonti** (blue), **Entità** (green), **Concetti** (amber), **Confronti** (purple). Click any node to read the page. Sidebar with live search (searches titles, tags, and content). Keyboard: `/` to search, `Esc` to go back.
-
-## Quick Start
-
-### Step 1 — Clone the repo
+## Installazione
 
 ```bash
 git clone https://github.com/inferis995/llm-wiki-portable
 cd llm-wiki-portable
+bash install-commands.sh          # Windows: powershell -File install-commands.ps1
 ```
 
-### Step 2 — Install commands
-
-```bash
-# Linux / macOS
-bash install-commands.sh
-
-# Windows (PowerShell)
-powershell -File install-commands.ps1
-```
-
-This copies the slash commands to Claude Code, OpenCode, and Hermes Agent.
-
-### Step 3 — Set up your wiki
-
-Open **Claude Code**, **OpenCode**, or **Hermes Agent** and run:
+Poi apri **Claude Code** o **OpenCode** e scrivi:
 
 ```
 /install-portable-wiki
 ```
 
-Claude will ask:
-1. **Where** to put the wiki (USB drive path or any folder)
-2. **Which template** to use:
+oppure semplicemente *"installa la wiki"*: la skill `llm-wiki-setup` si attiva
+da sola. Ti chiede tre cose — **dove** (cartella locale, USB o cartella cloud),
+**quale template**, **quale lingua** — e fa il resto.
 
-| Template | Use case | Folders |
-|----------|----------|---------|
-| `general` | General use, study, notes, personal research — original Karpathy method | sources / entities / concepts / comparisons |
-| `work` | Freelance / project & client management | projects / clients / meetings / tasks / resources |
-| `business` | Company knowledge base, SOPs, decisions | departments / processes / people / decisions / documents / meetings |
-| `professional` | Lawyer, accountant, consultant, doctor | clients / matters / deadlines / contacts |
-| `research` | Researcher, journalist, PhD student, analyst | sources / insights / topics / people / output |
-| `custom` | Any domain — Claude generates the structure from your answers | folders defined during setup |
+> Gli hook si caricano all'avvio: **riavvia Claude Code o OpenCode** dopo
+> l'installazione.
 
-Then Claude will:
-- Copy the web UI and sync script
-- Write `~/.claude/CLAUDE.md` globally so Claude finds your wiki from any directory
-- Create the folder structure for your chosen template
+Se preferisci saltare la skill:
 
-<details>
-<summary>OpenCode with commands</summary>
+```bash
+python3 install.py --mode local --target ~/wiki --template general --lang it
+python3 install.py --mode usb   --target /media/usb/wiki --template work
+```
+
+### Hai già una wiki (v1 o v2)?
+
+```bash
+python3 install.py --mode upgrade
+```
+
+Rileva l'installazione esistente, ne deduce il template, **non tocca `wiki/` né
+`raw/`** e migra la configurazione. Arrivando dalla v1 corregge anche il
+`~/.claude/CLAUDE.md` sovrascritto (con backup) e rimuove il subagent OpenCode
+che non si attivava mai.
+
+### Nuovo PC, wiki già su USB
+
+```bash
+python3 /media/usb/wiki/install.py --mode newpc
+```
+
+L'`install.py` è **sulla chiavetta**: non serve riclonare il repo.
+
+### Verifica
+
+```bash
+python3 install.py --mode doctor
+```
+
+## Uso
+
+```
+/llm-wiki-save     Salva nella wiki quello che questa sessione ha prodotto
+/llm-wiki-ask      Interroga la wiki e rispondi citando le pagine
+/llm-wiki-lint     Health check e correzione dei problemi
+/llm-dashboard     Apri il grafo 3D nel browser
+```
+
+Oppure parla e basta:
+
+- *"Ingerisci questo PDF"* → pagine con wikilink, originale archiviato in `raw/`
+- *"Cosa so su Docker networking?"* → risponde dalla wiki, con `[[citazioni]]`
+- *"Salva questa decisione"* → distilla nella pagina giusta e la collega
+
+Da **qualsiasi cartella**: il resolver trova la wiki da solo.
+
+## Template
+
+| Template | Per chi | Cartelle |
+|---|---|---|
+| `general` | Studio, note, ricerca personale — Karpathy originale | sources / entities / concepts / comparisons |
+| `work` | Freelance: progetti e clienti | projects / clients / meetings / tasks / resources |
+| `business` | Knowledge aziendale, SOP, decisioni | departments / processes / people / decisions / documents / meetings |
+| `professional` | Avvocato, commercialista, consulente, medico | clients / matters / deadlines / contacts |
+| `research` | Ricercatore, giornalista, dottorando, analista | sources / insights / topics / people / output |
+| `custom` | Qualsiasi dominio | le definisci tu durante il setup |
+
+Tutti usano lo stesso metodo: **ingest → query → lint**, con distillazione
+progressiva — le pagine rappresentano lo stato dell'arte, non appunti accumulati.
+Le convenzioni specifiche del dominio stanno in `templates/<nome>/profile.json`.
+
+## Come funziona
+
+```
+~/.claude/CLAUDE.md              blocco delimitato -> punta a AGENT-WIKI.md
+~/.claude/settings.json          4 hook (merge, mai sovrascritto)
+~/.claude/skills/                llm-wiki, llm-wiki-setup
+~/.config/opencode/AGENTS.md     blocco delimitato
+~/.config/opencode/opencode.json instructions -> AGENT-WIKI.md
+~/.config/opencode/plugin/       wiki-sync.js
+~/.llm-wiki/roots.json           registro: ritrova la wiki se il drive cambia
+
+USB / cartella/
+├── .llmwiki-root        marker: versione, template, id
+├── AGENT-WIKI.md        istruzioni per l'agente — fonte unica
+├── wiki/                le tue pagine markdown
+├── raw/                 originali, mai modificati
+├── web/                 dashboard 3D (data.js generato)
+├── tools/               sync · search · lint · log · ingest
+├── hooks/claude/        i quattro hook
+└── install.py           per configurare un PC nuovo
+```
+
+### Il ciclo
+
+1. Dai una fonte all'agente (PDF, URL, testo, immagine)
+2. L'agente **riscrive** le pagine esistenti distillando, e crea quelle mancanti
+3. Il sync riparte da solo, il grafo si aggiorna
+4. A fine sessione git committa
+5. Alla domanda successiva la wiki viene consultata prima della risposta
+
+## Tool a riga di comando
+
+Tutti trovano la wiki da soli, da qualsiasi directory.
+
+```bash
+python3 tools/search.py --query "docker networking" --top 5
+python3 tools/search.py --list-pages          # slug validi per i [[link]]
+python3 tools/search.py --backlinks concepts/docker
+python3 tools/lint.py                          # health check
+python3 tools/lint.py --json --only broken
+python3 tools/log.py --tail 10
+python3 tools/ingest.py --file paper.pdf
+python3 tools/ingest.py --url https://esempio.it/articolo
+python3 tools/sync.py --rebuild-index
+```
+
+## Formato pagina
+
+```markdown
+---
+created: 2026-08-21
+updated: 2026-08-21
+verified: 2026-08-21
+confidence: high
+sources: [[src-nome-fonte]]
+tags: [docker, networking]
+---
+
+# Docker Networking
+
+Una o due righe che dicono subito la cosa più importante.
+
+## Punti Chiave
+- Le bridge network isolano i container sullo stesso host
+- [[kubernetes-cni]] risolve lo stesso problema a livello di cluster
+
+## Superato
+- 2026-03-01: si riteneva che `--link` fosse la via consigliata — deprecato da [[src-docker-docs]]
+
+## Correlate
+- [[docker-compose]]
+```
+
+`confidence` (`high`/`medium`/`low`) e `verified` tracciano la provenienza. Le
+posizioni superate non si cancellano: finiscono sotto `## Superato`, perché fra
+sei mesi sapere *perché* qualcosa è cambiato vale quanto il fatto stesso.
+
+## Dashboard
+
+Quattro viste sulla stessa knowledge base, in un'app statica senza build step.
+
+### Grafo 3D
+
+Nodi illuminati (materiali PBR, non cerchi piatti), dimensione proporzionale alle
+connessioni, link curvi. Passando sul nodo: **il vicinato si accende e il resto
+si spegne**, con una scheda che mostra estratto, link, backlink e lunghezza.
+
+Controlli: **Focus** isola il vicinato · **Etichette** le mostra tutte ·
+**2D/3D** · **Inquadra**. Clic sulla legenda per mostrare/nascondere una categoria.
+
+### Pagina
 
 <p align="center">
-  <img src="docs/opencode-commands.webp" alt="OpenCode with LLM Wiki Portable commands" width="600">
+  <img src="docs/page-view.webp" alt="Vista pagina — indice, backlink, correlate" width="700">
+</p>
+
+Tipografia da lettura, e nella colonna laterale quello che nella wiki conta:
+**indice della pagina**, **backlink** (chi la cita), **collegamenti in uscita** e
+**pagine con tag in comune**. In testa: `confidence`, `verified`, e i pulsanti
+Copia link / Obsidian / File / Stampa. I wikilink rotti sono segnati in rosso
+sia in linea sia in un avviso in cima.
+
+### Panoramica
+
+<p align="center">
+  <img src="docs/overview.webp" alt="Panoramica — statistiche e distribuzione" width="700">
+</p>
+
+Pagine, collegamenti, parole, tag, link rotti, orfane. Distribuzione per
+categoria, pagine più collegate, aggiornate di recente, nuvola di tag.
+
+### Attività e Salute
+
+**Attività** è la timeline di `wiki/log.md`: come la wiki è cresciuta, con i
+link alle pagine create e distillate a ogni ingest.
+**Salute** elenca link rotti, orfane, pagine troppo lunghe e senza tag, ognuna
+cliccabile.
+
+### Comandi rapidi e scorciatoie
+
+`⌘K` / `Ctrl+K` apre la **command palette**: cerca pagine, filtra per tag,
+esegue azioni. `⇥` porta la stessa query alla ricerca completa, con anteprime ed
+evidenziazione.
+
+| | |
+|---|---|
+| `⌘K` cerca ed esegui | `?` scorciatoie |
+| `g` grafo · `o` panoramica · `a` attività · `h` salute | `t` tema chiaro/scuro |
+| `0` inquadra · `d` 2D/3D · `l` etichette · `f` focus | `s` sidebar · `Esc` indietro |
+
+Tema chiaro e scuro (segue il sistema, si può forzare), responsive fino al
+mobile, e stampa pulita della pagina aperta.
+
+<details>
+<summary>OpenCode con i comandi</summary>
+
+<p align="center">
+  <img src="docs/opencode-commands.webp" alt="OpenCode con i comandi LLM Wiki Portable" width="600">
 </p>
 
 </details>
 
-### Step 4 — Use it
+## Requisiti
 
-```
-/llm-dashboard    ← Open the 3D graph in your browser
-```
+| | Note |
+|---|---|
+| **Claude Code**, **OpenCode** o **Hermes Agent** | l'agente che esegue i comandi |
+| **Python 3.8+** | sync, ricerca, lint, ingest — nel PATH |
+| **git** | consigliato: versiona la wiki e permette di tornare indietro |
+| **Browser** | per il grafo 3D |
 
-Then talk to Claude:
-- *"Ingest this PDF"* → Claude creates wiki pages with wikilinks
-- *"What do I know about Docker networking?"* → Claude reads the wiki and answers
-- *"Show me everything related to [[kubernetes]]"* → Claude reads the graph
+Opzionale per i PDF: `pip install pypdf` oppure `poppler-utils`.
 
-> **After setup:** Claude finds your wiki from **any directory** — you don't need to open a terminal in the wiki folder. The global `~/.claude/CLAUDE.md` points to your USB/folder path.
+## Sviluppo
 
-## Templates
-
-| Template | Use case | Folders |
-|----------|----------|---------|
-| `general` | General use, study, notes, personal research — original Karpathy method | `sources / entities / concepts / comparisons` |
-| `work` | Freelance / project & client management | `projects / clients / meetings / tasks / resources` |
-| `business` | Company knowledge base, SOPs, decisions | `departments / processes / people / decisions / documents / meetings` |
-| `professional` | Lawyer, accountant, consultant, doctor | `clients / matters / deadlines / contacts` |
-| `research` | Researcher, journalist, PhD student, analyst | `sources / insights / topics / people / output` |
-| `custom` | Any domain — Claude generates the structure from your answers | folders defined during setup |
-
-All templates use the same Karpathy method: ingest → query → lint. Claude rewrites existing pages with progressive synthesis — pages always represent the state of the art, not accumulated notes. The 3D graph colors are assigned automatically from the actual folders in your wiki.
-
-## How It Works
-
-Based on the Karpathy method — the LLM acts as a "compiler" that incrementally builds a structured wiki from raw sources. Claude reads markdown files directly; no embedding server or vector database needed.
-
-```
-~/.claude/CLAUDE.md                    ← Claude Code global instructions
-~/.config/opencode/agents/wiki.md     ← OpenCode global agent
-~/.hermes/SOUL.md                     ← Hermes Agent global identity
-
-USB Drive (or any folder)/
-├── wiki/                    ← Your pages (markdown with wikilinks)
-│   ├── sources/src-*.md     ← Source summaries
-│   ├── entities/            ← Tools, companies, people
-│   ├── concepts/            ← Ideas, protocols, patterns
-│   └── comparisons/         ← A vs B
-├── raw/                     ← Original files (PDFs, images) — never modified
-├── web/                     ← Static web UI (open index.html in browser)
-│   └── data.js              ← Auto-generated by sync.py
-└── sync.py                  ← Regenerates graph data from markdown
+```bash
+python3 -m unittest discover -s tests -v         # 42 test
+python3 tools/lint.py --root demo --strict       # la wiki demo deve restare pulita
+python3 tools/sync.py --root demo --output web/data.json --rebuild-index
 ```
 
-### The Workflow
+La CI gira su Linux, macOS e Windows con Python 3.8 e 3.12, e include uno smoke
+test di installazione in una HOME temporanea.
 
-1. **You give Claude a source** (PDF, URL, paste text)
-2. **Claude creates wiki pages** with `[[wikilinks]]` and cross-references
-3. **Claude runs `sync.py`** to rebuild the graph
-4. **You open `/llm-dashboard`** to see the 3D graph
-5. **You ask questions** — Claude reads the wiki files and answers with `[[citations]]`
+## Stack
 
-### Moving to Another PC
-
-Plug the USB into a new computer → open Claude Code, OpenCode, or Hermes Agent → run `/install-portable-wiki`. The command detects the existing wiki and only configures the local system (global CLAUDE.md / SOUL.md, commands). Your data stays on the USB.
-
-## Page Format
-
-```markdown
----
-created: 2026-05-08
-updated: 2026-05-08
-sources: [[src-my-source]]
-tags: [tag1, tag2]
----
-
-# Page Title
-
-Content with [[wikilinks]] to other pages.
-
-## Key Points
-- Point 1
-
-## Related
-- [[other-page]]
-```
-
-## Requirements
-
-| Requirement | Notes |
-|-------------|-------|
-| **Claude Code**, **OpenCode**, or **Hermes Agent** | AI assistant that runs the commands |
-| **Python 3.8+** | For `sync.py` (generates the 3D graph data) |
-| **USB drive or folder** | Any writable path works |
-| **Browser** | For the 3D graph UI |
-
-> Python must be in your system PATH before running `install-commands.sh`.
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `/install-portable-wiki` | Install wiki on USB or configure on a new PC |
-| `/llm-dashboard` | Open the 3D graph in browser (auto-syncs if pages changed) |
-
-## Tech Stack
-
-- **Web UI**: Vanilla HTML/CSS/JS (no framework, no build step)
-- **Graph**: [3d-force-graph](https://github.com/vasturiano/3d-force-graph) + Three.js + D3.js
+- **UI**: HTML/CSS/JS vanilla, nessun framework, nessun build step
+- **Grafo**: [3d-force-graph](https://github.com/vasturiano/3d-force-graph) + Three.js + D3
 - **Markdown**: [marked.js](https://marked.js.org/)
-- **Sync**: `sync.py` — zero dependencies, Python 3.8+
+- **Tool**: Python 3.8+, zero dipendenze
 
-## License
+## Disinstallare
+
+```bash
+python3 install.py --mode uninstall
+```
+
+Rimuove hook, blocchi di configurazione, plugin e skill. **I dati della wiki
+restano intatti.**
+
+## Licenza
 
 MIT

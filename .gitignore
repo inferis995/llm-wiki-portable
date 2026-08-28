@@ -13,3 +13,9 @@ System Volume Information/
 
 # Keep empty dirs
 !.gitkeep
+web/data.json
+web/.last-sync
+
+# Python
+__pycache__/
+*.pyc

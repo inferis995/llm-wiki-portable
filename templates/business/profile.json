@@ -1,0 +1,19 @@
+{
+  "name": "business",
+  "label": {
+    "it": "Knowledge base aziendale, SOP, decisioni",
+    "en": "Company knowledge base, SOPs, decisions"
+  },
+  "folders": [
+    {"dir": "departments", "prefix": "dep-", "desc": {"it": "Reparti: responsabilita' e referenti", "en": "Departments: responsibilities and owners"}},
+    {"dir": "processes", "prefix": "proc-", "desc": {"it": "SOP e procedure operative", "en": "SOPs and operating procedures"}},
+    {"dir": "people", "prefix": "per-", "desc": {"it": "Ruoli e competenze, non dati personali", "en": "Roles and expertise, not personal data"}},
+    {"dir": "decisions", "prefix": "dec-", "desc": {"it": "Decisioni con data, contesto e motivazione", "en": "Decisions with date, context and rationale"}},
+    {"dir": "documents", "prefix": "doc-", "desc": {"it": "Sintesi di documenti ufficiali", "en": "Summaries of official documents"}},
+    {"dir": "meetings", "prefix": "mtg-", "desc": {"it": "Esito e decisioni prese", "en": "Outcomes and decisions taken"}}
+  ],
+  "conventions": {
+    "it": ["Le decisioni sono **append-only**: una decisione superata non si cancella, si marca sotto `## Superato` linkando quella nuova.", "Ogni processo dichiara il reparto proprietario: `[[dep-nome]]`.", "In `people/` vanno ruolo e competenze. Niente dati personali, valutazioni o retribuzioni.", "Ogni SOP dice come si verifica che sia stata eseguita bene."],
+    "en": ["Decisions are **append-only**: a superseded decision is not deleted, it is marked under `## Superseded` linking the new one.", "Every process names its owning department: `[[dep-name]]`.", "`people/` holds role and expertise. No personal data, reviews or compensation.", "Every SOP states how to verify it was done correctly."]
+  }
+}

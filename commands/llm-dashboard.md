@@ -1,39 +1,28 @@
-Launch the LLM Wiki Portable dashboard (web UI) in the browser.
+---
+description: Apri la dashboard 3D della wiki nel browser
+agent: build
+---
 
-## Steps
+## 1. Trova la wiki e sincronizza
 
-### 1. Find the wiki root
-Look for a `wiki/` directory in the current working directory. If not found, ask the user: "Percorso della wiki portable? (es. D:\, E:\, C:\Users\Nome\wiki-portable)"
-
-### 2. Check if sync is needed
-Run this Python snippet (handles empty wiki gracefully):
-```python
-import os
-wiki = r'{wiki-root}/wiki'
-js = r'{wiki-root}/web/data.js'
-if not os.path.exists(js):
-    print('sync_needed')
-else:
-    mds = [
-        os.path.getmtime(os.path.join(dp, f))
-        for dp, _, fns in os.walk(wiki)
-        for f in fns if f.endswith('.md')
-    ]
-    if not mds or max(mds) > os.path.getmtime(js):
-        print('sync_needed')
-    else:
-        print('ok')
+```bash
+python3 "<root>/tools/sync.py" --rebuild-index
 ```
-- If `sync_needed`: inform the user "Le pagine wiki sono più recenti di data.js. Eseguo sync..." then run:
-  `python "{wiki-root}/sync.py" --wiki-dir "{wiki-root}/wiki" --output "{wiki-root}/web/data.json"`
-- If `data.js` exists and is up to date: skip sync
 
-### 3. Launch in browser
-Open `{wiki-root}/web/index.html` in the default browser:
-- Windows: `start "" "{wiki-root}/web/index.html"`
-- macOS: `open "{wiki-root}/web/index.html"`
-- Linux: `xdg-open "{wiki-root}/web/index.html"`
+Gli script risolvono la wiki root da soli (marker `.llmwiki-root`, `$LLM_WIKI_ROOT`
+o registro `~/.llm-wiki/roots.json`). Se rispondono "wiki non trovata", il drive
+non e' montato: dillo e fermati.
 
-### 4. Report
-Tell the user: "Dashboard aperta nel browser. {N} pagine, {L} link."
-Remind: usa `/` per cercare, `Esc` per tornare al grafo.
+## 2. Apri
+
+- Linux: `xdg-open "<root>/web/index.html"`
+- macOS: `open "<root>/web/index.html"`
+- Windows: `start "" "<root>/web/index.html"`
+
+## 3. Riferisci
+
+Numero di pagine e di link dall'output del sync. Se ci sono link rotti o pagine
+orfane, dillo e ricorda che il pannello **Health** della dashboard li elenca, e
+che `/llm-wiki-lint` li corregge.
+
+Scorciatoie: `/` cerca, `Esc` torna al grafo, `h` apre Health.
