@@ -40,9 +40,9 @@ jobs:
 
       - name: web/data.js deve essere allineato a demo/
         run: |
-          python tools/sync.py --root demo --output web/data.json --rebuild-index
-          git diff --exit-code -- web/data.js || {
-            echo "::error::web/data.js non e' aggiornato. Esegui: python tools/sync.py --root demo --output web/data.json --rebuild-index"
+          python tools/sync.py --root demo --output web/data.json --rebuild-index --reproducible
+          git diff --exit-code -- web/data.js demo/ || {
+            echo "::error::web/data.js non e' aggiornato. Esegui: python tools/sync.py --root demo --output web/data.json --rebuild-index --reproducible"
             exit 1
           }
 

@@ -356,6 +356,43 @@ class TestDemoWiki(unittest.TestCase):
         data = sync_mod.build_data(os.path.join(demo, 'wiki'))
         self.assertEqual(data['health']['broken_links'], [])
 
+    def test_reproducible_output_omits_volatile_fields(self):
+        """generated_at e root rendono il data.js diverso a ogni run e su ogni
+        macchina: in modalita' riproducibile devono sparire, altrimenti il
+        controllo di allineamento in CI non puo' passare mai."""
+        demo = os.path.join(ROOT, 'demo')
+        if not os.path.isdir(demo):
+            self.skipTest('demo assente')
+        data = sync_mod.build_data(os.path.join(demo, 'wiki'), reproducible=True)
+        self.assertNotIn('generated_at', data)
+        self.assertNotIn('root', data)
+
+        normal = sync_mod.build_data(os.path.join(demo, 'wiki'))
+        self.assertIn('generated_at', normal)
+        self.assertIn('root', normal)
+
+    def test_reproducible_output_is_stable(self):
+        demo = os.path.join(ROOT, 'demo')
+        if not os.path.isdir(demo):
+            self.skipTest('demo assente')
+        first = json.dumps(sync_mod.build_data(os.path.join(demo, 'wiki'), True), sort_keys=True)
+        second = json.dumps(sync_mod.build_data(os.path.join(demo, 'wiki'), True), sort_keys=True)
+        self.assertEqual(first, second)
+
+    def test_demo_data_js_matches_reproducible_build(self):
+        """Esattamente il confronto che fa la CI."""
+        demo = os.path.join(ROOT, 'demo')
+        data_js = os.path.join(ROOT, 'web', 'data.js')
+        if not (os.path.isdir(demo) and os.path.isfile(data_js)):
+            self.skipTest('demo assente')
+        published = W.read_text(data_js)
+        fresh = 'var WIKI_DATA = ' + json.dumps(
+            sync_mod.build_data(os.path.join(demo, 'wiki'), reproducible=True),
+            ensure_ascii=False) + ';\n'
+        self.assertEqual(published, fresh,
+                         'web/data.js non rigenerato: esegui python3 tools/sync.py '
+                         '--root demo --output web/data.json --rebuild-index --reproducible')
+
     def test_demo_data_js_is_current(self):
         demo = os.path.join(ROOT, 'demo')
         data_js = os.path.join(ROOT, 'web', 'data.js')

@@ -54,7 +54,7 @@ def recent_log(wiki_directory, limit=40):
     } for e in reversed(entries)]
 
 
-def build_data(wiki_directory):
+def build_data(wiki_directory, reproducible=False):
     pages = W.resolve_graph(W.load_pages(wiki_directory))
 
     detected = ordered_categories(wiki_directory)
@@ -89,14 +89,21 @@ def build_data(wiki_directory):
         for tag in p['frontmatter'].get('tags', []) or []:
             tags[tag] = tags.get(tag, 0) + 1
 
-    return {
-        'version': W.VERSION,
+    # generated_at e root sono volatili (ora corrente, path assoluto della
+    # macchina): in modalita' riproducibile restano fuori, cosi' il data.js di
+    # una wiki pubblicata e' confrontabile e non espone il filesystem locale.
+    meta = {} if reproducible else {
         'generated_at': datetime.now().isoformat(timespec='seconds'),
         'root': os.path.abspath(os.path.dirname(os.path.abspath(wiki_directory))),
+    }
+
+    return {
+        'version': W.VERSION,
         'pages': out_pages,
         'categories': {c: colors.get(c, W.FALLBACK_COLOR) for c in all_cats},
         'tags': dict(sorted(tags.items(), key=lambda kv: (-kv[1], kv[0]))),
         'log': recent_log(wiki_directory),
+        **meta,
         'health': {
             'broken_links': broken,
             'orphans': orphans,
@@ -120,17 +127,15 @@ def rebuild_index(wiki_directory, data):
     index_path = os.path.join(wiki_directory, 'index.md')
 
     created = W.today()
+    previous_updated = None
+    previous_body = None
     if os.path.isfile(index_path):
-        meta, _ = W.parse_frontmatter(W.read_text(index_path))
+        meta, previous_body = W.parse_frontmatter(W.read_text(index_path))
         created = meta.get('created') or created
+        previous_updated = meta.get('updated')
 
     lines = [
-        W.dump_frontmatter({
-            'created': created,
-            'updated': W.today(),
-            'tags': ['index'],
-            'generated': 'auto (sync.py --rebuild-index)',
-        }).rstrip('\n'),
+        '__FRONTMATTER__',
         '',
         '# Wiki Index',
         '',
@@ -174,23 +179,40 @@ def rebuild_index(wiki_directory, data):
             lines.append(entry)
         lines.append('')
 
+    body = '\n'.join(lines[1:]).lstrip('\n').rstrip('\n') + '\n'
+
+    # `updated` cambia solo se cambia il contenuto: altrimenti l'index
+    # risulterebbe modificato ogni giorno anche a wiki ferma.
+    updated = W.today()
+    if previous_body is not None and previous_updated and \
+            previous_body.strip() == body.strip():
+        updated = previous_updated
+
+    frontmatter = W.dump_frontmatter({
+        'created': created,
+        'updated': updated,
+        'tags': ['index'],
+        'generated': 'auto (sync.py --rebuild-index)',
+    }).rstrip('\n')
+
     with open(index_path, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines).rstrip('\n') + '\n')
+        f.write(frontmatter + '\n\n' + body)
     return index_path
 
 
-def sync(wiki_directory, output_path, do_rebuild_index=False, quiet=False):
+def sync(wiki_directory, output_path, do_rebuild_index=False, quiet=False,
+         reproducible=False):
     if not os.path.isdir(wiki_directory):
         sys.stderr.write("Errore: directory {} non trovata\n".format(wiki_directory))
         sys.exit(1)
 
-    data = build_data(wiki_directory)
+    data = build_data(wiki_directory, reproducible)
 
     if do_rebuild_index:
         # Una passata basta: le statistiche scritte nell'index escludono i link
         # dell'index stesso, quindi rigenerarlo e' un punto fisso.
         rebuild_index(wiki_directory, data)
-        data = build_data(wiki_directory)
+        data = build_data(wiki_directory, reproducible)
 
     out_dir = os.path.dirname(output_path)
     if out_dir:
@@ -225,6 +247,8 @@ def main():
     parser.add_argument('--wiki-dir', help='Directory wiki (default: <root>/wiki)')
     parser.add_argument('--output', help='Path del JSON (default: <root>/web/data.json)')
     parser.add_argument('--rebuild-index', action='store_true', help='Rigenera wiki/index.md')
+    parser.add_argument('--reproducible', action='store_true',
+                        help='Ometti timestamp e path assoluto: output identico a parita\' di contenuto')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
 
@@ -236,7 +260,7 @@ def main():
         wdir = W.wiki_dir(root)
         out = args.output or os.path.join(root, 'web', 'data.json')
 
-    sync(wdir, out, args.rebuild_index, args.quiet)
+    sync(wdir, out, args.rebuild_index, args.quiet, args.reproducible)
 
 
 if __name__ == '__main__':
