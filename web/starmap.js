@@ -14,7 +14,7 @@
   const FOCAL = 900;          // lunghezza focale della camera
   const F2 = FOCAL / 0.9;     // focale in modalità volo
   const DAMP = 0.86;          // smorzamento della velocità per passo
-  const ZMIN = 0.07, ZMAX = 5;
+  const ZMIN = 0.05, ZMAX = 14;
 
   const BACKDROP_COUNT = 240;
   const BACKDROP_RMIN = 1700, BACKDROP_RRANGE = 1200;
@@ -1114,10 +1114,34 @@
 
     cv.addEventListener("wheel", (e) => {
       e.preventDefault();
-      const k = Math.exp(-e.deltaY * 0.0012);
-      this.target.zoom = Math.max(ZMIN, Math.min(ZMAX, this.target.zoom * k));
-      this.idleT = 0;
+
+      // deltaMode dice in che unità è deltaY: 0 pixel, 1 righe, 2 pagine.
+      // Senza convertirlo, i browser che riportano righe (Firefox e molti
+      // trackpad) mandano deltaY≈3 e lo zoom si muove del 3 per mille a
+      // evento: da fuori sembra semplicemente rotto.
+      let d = e.deltaY;
+      if (e.deltaMode === 1) d *= 16;
+      else if (e.deltaMode === 2) d *= this.H || 600;
+
+      // il pinch a due dita del trackpad arriva come wheel + ctrl, con delta
+      // minuscoli: va amplificato o non si muove niente
+      if (e.ctrlKey) d *= 8;
+
+      // un solo evento non può fare più di un passo pieno, altrimenti i mouse
+      // con rotella libera saltano da un capo all'altro dello zoom
+      d = Math.max(-180, Math.min(180, d));
+
+      this.zoomBy(Math.exp(-d * 0.0022));
     }, { passive: false });
+
+    // doppio clic: avvicina, o si posa sulla stella sotto il puntatore
+    cv.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      const [mx, my] = pos(e);
+      const h = this._hit(mx, my);
+      if (h >= 0) this.focus = h;
+      this.zoomBy(1.8);
+    });
 
     this._onResize = () => this._resize();
     global.addEventListener("resize", this._onResize);
@@ -1170,6 +1194,15 @@
   };
 
   Starmap.prototype.shapes = function () { return SHAPES.slice(); };
+
+  /* Moltiplica lo zoom, tenendolo nei limiti. */
+  Starmap.prototype.zoomBy = function (k) {
+    this.target.zoom = Math.max(ZMIN, Math.min(ZMAX, this.target.zoom * k));
+    this.idleT = 0;
+    return this.target.zoom;
+  };
+
+  Starmap.prototype.zoomLevel = function () { return this.target.zoom; };
 
   Starmap.prototype.fit = function (fill) {
     this.focus = -1;

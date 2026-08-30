@@ -432,7 +432,7 @@
       const f = this.sm && this.sm.flight.on;
       $("#graph-hint").innerHTML = f
         ? "W/S avanti · A/D lato · Q/E quota · Shift accelera<br>Esc per atterrare"
-        : "trascina per ruotare · rotella per zoomare<br>clic su una stella per aprirla";
+        : "trascina per ruotare · rotella o + / − per zoomare<br>clic apre la pagina · doppio clic avvicina";
     },
 
     /* ── scheda al passaggio del mouse ── */
@@ -535,6 +535,8 @@
 
     /* ── controlli ── */
     fit() { if (this.sm) this.sm.fit(); },
+
+    zoom(k) { if (this.sm) this.sm.zoomBy(k); },
 
     nextShape() {
       if (!this.sm) return;
@@ -1227,6 +1229,8 @@
     ["Salute", ["H"]],
     ["Mappa stellare", null],
     ["Inquadra tutto", ["0"]],
+    ["Avvicina / allontana", ["+", "−"]],
+    ["Avvicina a una stella", ["doppio clic"]],
     ["Cambia forma della galassia", ["M"]],
     ["Nomi delle pagine", ["L"]],
     ["Volo", ["W"]],
@@ -1264,6 +1268,8 @@
         case "help": $("#help").hidden = false; break;
         case "help-close": $("#help").hidden = true; break;
         case "fit": Graph.fit(); break;
+        case "zoom-in": Graph.zoom(1.35); break;
+        case "zoom-out": Graph.zoom(1 / 1.35); break;
         case "shape": Graph.nextShape(); break;
         case "labels": Graph.toggleLabels(); break;
         case "flight": Graph.toggleFlight(); break;
@@ -1299,6 +1305,10 @@
         t: () => Theme.toggle(),
         s: () => this.action("toggle-sidebar"),
         "0": () => { Router.view("graph"); setTimeout(() => Graph.fit(), 60); },
+        "+": () => Graph.zoom(1.35),
+        "=": () => Graph.zoom(1.35),
+        "-": () => Graph.zoom(1 / 1.35),
+        "_": () => Graph.zoom(1 / 1.35),
         m: () => { Router.view("graph"); Graph.nextShape(); },
         l: () => Graph.toggleLabels(),
         w: () => { Router.view("graph"); Graph.toggleFlight(); },

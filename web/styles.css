@@ -834,3 +834,7 @@ kbd {
 .app.zen .sm-timeline,
 .app.zen .node-card { display: none !important; }
 .app.zen .stage { inset: 0; }
+
+/* Zoom: la rotella non deve essere l'unica via */
+.zoomer { display: inline-flex; align-items: center; gap: 1px; }
+.zoomer .icon-btn { width: 26px; height: 26px; font-size: 14px; }
