@@ -374,407 +374,73 @@
     },
   };
 
-  // ═══════════════════════════════════════════════════ GRAFO 3D ══
+  // ═════════════════════════════════════════════ MAPPA STELLARE ══
+  //
+  // Il grafo è una mappa stellare: ogni pagina è una stella, ogni categoria una
+  // costellazione, ogni [[wikilink]] un filo di luce. Tecnica derivata da
+  // Fathom Starmap (MIT, © 2026 Ariel Bowyer) — vedi THIRD-PARTY.md.
 
   const Graph = {
-    ready: false, fg: null, is2d: false,
-    labelsAlways: store.get("labelsAlways", false),
-    focusMode: store.get("focusMode", true),
-    nodes: new Map(), selected: null, hovered: null,
-    highlightNodes: new Set(), highlightLinks: new Set(),
-    idleAt: Date.now(), angle: 0, stars: null,
-
-    /* Texture radiale generata a runtime: è il "bloom" senza post-processing,
-       che offline non abbiamo (UnrealBloomPass non è nel bundle). */
-    glowTexture: (function () {
-      const size = 128;
-      const c = document.createElement("canvas");
-      c.width = c.height = size;
-      const g = c.getContext("2d").createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-      g.addColorStop(0.00, "rgba(255,255,255,1)");
-      g.addColorStop(0.18, "rgba(255,255,255,.62)");
-      g.addColorStop(0.42, "rgba(255,255,255,.20)");
-      g.addColorStop(1.00, "rgba(255,255,255,0)");
-      const ctx = c.getContext("2d");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, size, size);
-      return new THREE.CanvasTexture(c);
-    })(),
+    ready: false, sm: null, zen: false,
+    labels: store.get("labels", true),
 
     init() {
-      const data = this.buildData();
-
-      this.fg = ForceGraph3D()($("#graph-canvas"))
-        .graphData(data)
-        .backgroundColor("rgba(0,0,0,0)")
-        .showNavInfo(false)
-        .enableNodeDrag(true)
-        .nodeRelSize(4)
-        .cooldownTicks(320)
-        .d3AlphaDecay(0.014)
-        .d3VelocityDecay(0.28)
-
-        .nodeThreeObject((n) => this.buildNode(n))
-        .nodeThreeObjectExtend(false)
-        .nodeVisibility((n) => this.isVisible(n))
-
-        .linkVisibility((l) => this.isVisible(l.source) && this.isVisible(l.target))
-        .linkCurvature(0.18)
-        .linkWidth((l) => (this.highlightLinks.has(l) ? 1.6 : 0.55))
-        .linkColor((l) => this.linkColor(l))
-        .linkOpacity(0.8)
-        .linkDirectionalParticles((l) => (this.highlightLinks.has(l) ? 3 : 0))
-        .linkDirectionalParticleWidth(1.6)
-        .linkDirectionalParticleSpeed(0.006)
-        .linkDirectionalParticleColor((l) => this.nodeColor(l.source))
-
-        .onNodeHover((n) => this.onHover(n))
-        .onNodeClick((n) => { this.idleAt = Date.now(); Router.go(n.id); })
-        .onBackgroundClick(() => { this.select(null); Router.view("graph"); })
-        .onNodeDragEnd((n) => { n.fx = n.x; n.fy = n.y; n.fz = n.z; });
-
-      this.fg.d3Force("link").distance((l) => 26 + 26 / (1 + Math.min(this.deg(l.source), this.deg(l.target))));
-      this.fg.d3Force("charge").strength(-105).distanceMax(340);
-      this.fg.d3Force("center").strength(0.85);
-      if (window.d3 && d3.forceCollide) {
-        this.fg.d3Force("collide", d3.forceCollide((n) => this.radius(n) * 1.35).strength(0.75));
+      const host = $("#graph-canvas");
+      if (typeof Starmap === "undefined") {
+        host.innerHTML = '<div class="sm-fail">starmap.js non caricato.</div>';
+        return;
       }
 
-      this.setupScene();
-      this.applyTheme();
-      this.renderLegend();
-      this.bind();
+      const superseded = /^\s*##\s+(superato|superseded)\b/im;
+      const orphans = new Set(S.health.orphans || []);
+
+      const pages = S.contentPages.map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        category: p.category,
+        links: (p.links || []).filter((t) => {
+          const q = S.bySlug.get(t);
+          return q && !q.isMeta;
+        }),
+        created: p.fm.created || null,
+        updated: p.fm.updated || null,
+        superseded: superseded.test(p.content),
+        orphan: orphans.has(p.slug),
+        words: p.words,
+      }));
+
+      this.sm = new Starmap({
+        host,
+        onSelect: (node) => {
+          if (node) Router.go(node.slug);
+          else { this.sm.selectSlug(null); Router.view("graph"); }
+        },
+        onHover: (node, mx, my) => this.card(node, mx, my),
+      });
+      this.sm.setData(pages, S.colors);
+      this.sm.set("names", this.labels ? 1 : 0);
+      this.sm.start();
+
       this.ready = true;
-
-      this.paint();
-      this.applyCameraMode();
-      this.fg.onEngineStop(() => this.settle());
-      setTimeout(() => this.settle(), 5000);
-
-      $("#graph-hint").innerHTML =
-        "trascina per ruotare · rotella per zoomare<br>clic su un nodo per aprirlo";
-      this.loop();
+      this.renderLegend();
+      this.renderTimeline();
+      this.bind();
+      this.hint();
     },
 
-    /* ── dati ─────────────────────────────────────────────── */
-
-    buildData() {
-      /* index.md e log.md restano fuori dal grafo: l'index linka ogni pagina,
-         quindi comparirebbe come l'hub piu' importante della wiki senza esserlo. */
-      const pages = S.pages.filter((p) => !p.isMeta);
-      const nodes = pages.map((p) => ({
-        id: p.slug, title: p.title, category: p.category,
-        deg: S.degree.get(p.slug) || 0,
-        broken: (p.broken_links || []).length,
-        orphan: S.health.orphans.indexOf(p.slug) >= 0,
-      }));
-      const inGraph = new Set(pages.map((p) => p.slug));
-      const seen = new Set();
-      const links = [];
-      pages.forEach((p) => (p.links || []).forEach((t) => {
-        if (!inGraph.has(t)) return;
-        const key = p.slug < t ? p.slug + "|" + t : t + "|" + p.slug;
-        if (seen.has(key)) return;
-        seen.add(key);
-        links.push({ source: p.slug, target: t });
-      }));
-      return { nodes, links };
+    hint() {
+      const f = this.sm && this.sm.flight.on;
+      $("#graph-hint").innerHTML = f
+        ? "W/S avanti · A/D lato · Q/E quota · Shift accelera<br>Esc per atterrare"
+        : "trascina per ruotare · rotella per zoomare<br>clic su una stella per aprirla";
     },
 
-    deg(ref) { const id = ref && ref.id != null ? ref.id : ref; return S.degree.get(id) || 0; },
-    nodeColor(ref) {
-      const id = ref && ref.id != null ? ref.id : ref;
-      return colorOf(S.bySlug.get(id));
-    },
-    isVisible(ref) {
-      const id = ref && ref.id != null ? ref.id : ref;
-      const page = S.bySlug.get(id);
-      if (!page || page.isMeta) return false;
-      if (S.hiddenCats.has(page.category)) return false;
-      if (S.tag && !page.tags.includes(S.tag)) return false;
-      if (this.focusMode && this.highlightNodes.size && !this.highlightNodes.has(id)) return false;
-      return true;
-    },
-
-    radius(node) { return 2.8 + Math.sqrt(node.deg) * 1.7; },
-
-    /* ── costruzione nodo ─────────────────────────────────── */
-
-    buildNode(node) {
-      const color = new THREE.Color(this.nodeColor(node));
-      const r = this.radius(node);
-      const group = new THREE.Group();
-
-      /* Corpo: MeshStandardMaterial + luci = volume vero.
-         La v1 usava MeshBasicMaterial, per questo i nodi sembravano ritagli piatti. */
-      const body = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(r, r > 6 ? 3 : 2),
-        new THREE.MeshStandardMaterial({
-          color: color,
-          emissive: color.clone().multiplyScalar(0.5),
-          roughness: 0.28,
-          metalness: 0.05,
-          transparent: true,
-          opacity: 1,
-        })
-      );
-      group.add(body);
-
-      const light = S.theme === "light";
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: this.glowTexture,
-        color: color,
-        transparent: true,
-        opacity: light ? 0.2 : 0.5,
-        /* In tema chiaro l'additivo satura verso il bianco e il grafo diventa
-           una nebbia: li' serve blending normale. */
-        blending: light ? THREE.NormalBlending : THREE.AdditiveBlending,
-        depthWrite: false,
-      }));
-      glow.scale.setScalar(r * 3.4);
-      group.add(glow);
-
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(r * 1.5, r * 1.72, 48),
-        new THREE.MeshBasicMaterial({
-          color: color, transparent: true, opacity: 0,
-          side: THREE.DoubleSide, depthWrite: false,
-        })
-      );
-      group.add(ring);
-
-      const label = this.buildLabel(node, r);
-      group.add(label);
-
-      const marks = [];
-      if (node.broken) marks.push(this.buildMark(r, 0xf0616d, 1));
-      if (node.orphan) marks.push(this.buildMark(r, 0xeab24a, -1));
-      marks.forEach((m) => group.add(m));
-
-      this.nodes.set(node.id, { group, body, glow, ring, label, color, r, marks });
-      return group;
-    },
-
-    buildMark(r, hex, side) {
-      const dot = new THREE.Mesh(
-        new THREE.SphereGeometry(r * 0.3, 10, 10),
-        new THREE.MeshBasicMaterial({ color: hex })
-      );
-      dot.position.set(r * 0.85 * side, r * 0.85, r * 0.4);
-      return dot;
-    },
-
-    buildLabel(node, r) {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const text = node.title.length > 26 ? node.title.slice(0, 25) + "…" : node.title;
-      const fontSize = 30;
-      const pad = 14;
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const font = `500 ${fontSize}px ${getComputedStyle(document.body).fontFamily}`;
-      ctx.font = font;
-      const w = Math.ceil(ctx.measureText(text).width) + pad * 2;
-      const h = fontSize + pad;
-
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      ctx.scale(dpr, dpr);
-      ctx.font = font;
-
-      const light = S.theme === "light";
-      ctx.fillStyle = light ? "rgba(255,255,255,.92)" : "rgba(10,12,18,.82)";
-      const rad = 7;
-      ctx.beginPath();
-      ctx.moveTo(rad, 0); ctx.lineTo(w - rad, 0); ctx.quadraticCurveTo(w, 0, w, rad);
-      ctx.lineTo(w, h - rad); ctx.quadraticCurveTo(w, h, w - rad, h);
-      ctx.lineTo(rad, h); ctx.quadraticCurveTo(0, h, 0, h - rad);
-      ctx.lineTo(0, rad); ctx.quadraticCurveTo(0, 0, rad, 0);
-      ctx.closePath(); ctx.fill();
-
-      ctx.fillStyle = light ? "#10141c" : "#eef1f7";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(text, w / 2, h / 2 + 1);
-
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.minFilter = THREE.LinearFilter;
-      tex.generateMipmaps = false;
-
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: tex, transparent: true, depthWrite: false, opacity: 0,
-      }));
-      sprite.scale.set((w / h) * 5.2, 5.2, 1);
-      sprite.position.y = -(r + 5.5);
-      sprite.userData.hub = node.deg;
-      return sprite;
-    },
-
-    /* ── scena ────────────────────────────────────────────── */
-
-    setupScene() {
-      const scene = this.fg.scene();
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-
-      const key = new THREE.DirectionalLight(0xffffff, 1.05);
-      key.position.set(1, 1.3, 1);
-      scene.add(key);
-
-      const rim = new THREE.DirectionalLight(0x8fb0ff, 0.5);
-      rim.position.set(-1, -0.6, -0.9);
-      scene.add(rim);
-
-      scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x0a0d16, 0.35));
-
-      this.stars = this.buildStars();
-      scene.add(this.stars);
-    },
-
-    buildStars() {
-      const count = 900;
-      const pos = new Float32Array(count * 3);
-      for (let i = 0; i < count; i++) {
-        const r = 1400 + Math.random() * 1600;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        pos[i * 3 + 2] = r * Math.cos(phi);
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      return new THREE.Points(geo, new THREE.PointsMaterial({
-        size: 2.4, color: 0x8ea3c8, transparent: true, opacity: 0.5,
-        sizeAttenuation: false, depthWrite: false,
-      }));
-    },
-
-    glowOpacity() { return S.theme === "light" ? 0.2 : 0.5; },
-
-    applyTheme() {
-      const light = S.theme === "light";
-      const bg = light ? 0xf2f4f8 : 0x07080c;
-      const scene = this.fg.scene();
-      scene.fog = new THREE.FogExp2(bg, light ? 0.0016 : 0.0021);
-      this.fg.backgroundColor(light ? "#f2f4f8" : "#07080c");
-      if (this.stars) this.stars.material.opacity = light ? 0.16 : 0.5;
-      this.nodes.forEach((n) => {
-        n.body.material.emissiveIntensity = light ? 0.35 : 1;
-        n.glow.material.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
-        n.glow.material.needsUpdate = true;
-      });
-      this.rebuildLabels();
-      this.paint();
-    },
-
-    rebuildLabels() {
-      const data = this.fg.graphData();
-      data.nodes.forEach((node) => {
-        const entry = this.nodes.get(node.id);
-        if (!entry) return;
-        const fresh = this.buildLabel(node, entry.r);
-        fresh.material.opacity = entry.label.material.opacity;
-        entry.group.remove(entry.label);
-        entry.label.material.map.dispose();
-        entry.label.material.dispose();
-        entry.group.add(fresh);
-        entry.label = fresh;
-      });
-    },
-
-    linkColor(link) {
-      if (this.highlightLinks.has(link)) return this.nodeColor(link.source);
-      const dim = this.highlightNodes.size > 0;
-      return S.theme === "light"
-        ? (dim ? "rgba(20,28,48,.07)" : "rgba(28,40,68,.34)")
-        : (dim ? "rgba(150,175,230,.06)" : "rgba(158,182,235,.40)");
-    },
-
-    /* ── interazione ──────────────────────────────────────── */
-
-    onHover(node) {
-      $("#graph-canvas").style.cursor = node ? "pointer" : "grab";
-      this.idleAt = Date.now();
-      this.hovered = node;
-      if (!this.selected) this.highlightFrom(node);
-      this.card(node);
-    },
-
-    highlightFrom(node) {
-      this.highlightNodes.clear();
-      this.highlightLinks.clear();
-
-      if (node) {
-        this.highlightNodes.add(node.id);
-        this.fg.graphData().links.forEach((l) => {
-          const s = l.source.id != null ? l.source.id : l.source;
-          const t = l.target.id != null ? l.target.id : l.target;
-          if (s === node.id || t === node.id) {
-            this.highlightLinks.add(l);
-            this.highlightNodes.add(s);
-            this.highlightNodes.add(t);
-          }
-        });
-      }
-      this.paint();
-    },
-
-    repaintLinks() {
-      this.fg.linkColor(this.fg.linkColor())
-             .linkWidth(this.fg.linkWidth())
-             .linkDirectionalParticles(this.fg.linkDirectionalParticles());
-    },
-
-    paint() {
-      const dimming = this.highlightNodes.size > 0;
-      this.nodes.forEach((n, id) => {
-        const on = !dimming || this.highlightNodes.has(id);
-        const isSel = this.selected === id;
-
-        n.body.material.opacity = on ? 1 : 0.12;
-        n.glow.material.opacity = (on ? this.glowOpacity() : 0.04) * (isSel ? 1.8 : 1);
-        n.ring.material.opacity = isSel ? 0.85 : 0;
-        n.marks.forEach((m) => { m.material.opacity = on ? 1 : 0.1; m.material.transparent = true; });
-
-        const showLabel = this.labelsAlways
-          || isSel
-          || (dimming && on)
-          || (!dimming && n.label.userData.hub >= this.hubThreshold);
-        n.label.material.opacity = showLabel ? (on ? 1 : 0.2) : 0;
-      });
-      this.repaintLinks();
-    },
-
-    get hubThreshold() {
-      if (this._hubT != null) return this._hubT;
-      const degrees = Array.from(S.degree.values()).sort((a, b) => b - a);
-      this._hubT = degrees.length > 10 ? Math.max(2, degrees[Math.floor(degrees.length * 0.34)]) : 1;
-      return this._hubT;
-    },
-
-    select(slug) {
-      this.selected = slug;
-      const node = slug ? this.fg.graphData().nodes.find((n) => n.id === slug) : null;
-      this.highlightFrom(node);
-      if (node && node.x != null) this.focus(node);
-    },
-
-    focus(node) {
-      const dist = 90 + this.radius(node) * 5;
-      const len = Math.hypot(node.x, node.y, node.z) || 1;
-      const k = 1 + dist / len;
-      this.fg.cameraPosition(
-        { x: node.x * k, y: node.y * k, z: node.z * k },
-        node, 850);
-    },
-
-    card(node) {
+    /* ── scheda al passaggio del mouse ── */
+    card(node, mx, my) {
       const host = $("#node-card");
       if (!node) { host.hidden = true; return; }
-      const page = S.bySlug.get(node.id);
+      const page = S.bySlug.get(node.slug);
       if (!page) { host.hidden = true; return; }
-
       const color = colorOf(page);
       host.innerHTML =
         `<div class="node-card__cat" style="color:${color}">${esc(page.category)}</div>
@@ -786,197 +452,151 @@
            <span>${plural(page.words, "parola", "parole")}</span>
          </div>`;
       host.hidden = false;
-
       const rect = $("#view-graph").getBoundingClientRect();
-      const coords = this.fg.graph2ScreenCoords
-        ? this.fg.graph2ScreenCoords(node.x, node.y, node.z) : null;
-      const x = coords ? coords.x : rect.width / 2;
-      const y = coords ? coords.y : rect.height / 2;
-      host.style.left = clamp(x + 22, 12, rect.width - 320) + "px";
-      host.style.top  = clamp(y - 30, 12, rect.height - 170) + "px";
+      host.style.left = clamp((mx || 0) + 22, 12, rect.width - 320) + "px";
+      host.style.top = clamp((my || 0) - 30, 12, rect.height - 170) + "px";
     },
 
-    /* ── controlli ────────────────────────────────────────── */
-
-    applyFilter() {
-      this._hubT = null;
-      this.fg.nodeVisibility(this.fg.nodeVisibility())
-             .linkVisibility(this.fg.linkVisibility());
-      this.paint();
-      this.renderLegend();
-    },
-
-    toggleCat(cat) {
-      if (S.hiddenCats.has(cat)) S.hiddenCats.delete(cat); else S.hiddenCats.add(cat);
-      store.set("hiddenCats", Array.from(S.hiddenCats));
-      this.applyFilter();
-      Sidebar.renderTree();
-    },
-
+    /* ── legenda: un clic isola una costellazione ── */
     renderLegend() {
       const host = $("#graph-legend");
       host.innerHTML = "";
       const counts = S.stats.categories || {};
       S.cats.forEach((cat) => host.appendChild(el("button", {
-        class: "legend__item" + (S.hiddenCats.has(cat) ? " is-off" : ""),
-        title: `Mostra/nascondi ${cat}`,
-        onclick: () => this.toggleCat(cat),
+        class: "legend__item" + (this.sm && this.sm.solo && this.sm.solo !== cat ? " is-off" : ""),
+        title: `Isola ${cat}`,
+        onclick: () => {
+          if (!this.sm) return;
+          this.sm.setSolo(this.sm.solo === cat ? null : cat);
+          this.renderLegend();
+          toast(this.sm.solo ? `Solo ${cat}` : "Tutte le costellazioni");
+        },
         html: `<i class="legend__swatch" style="background:${S.colors[cat]}"></i>
                <span class="legend__name">${esc(cat)}</span>
                <em class="legend__n">${counts[cat] || 0}</em>`,
       })));
     },
 
-    settle() {
-      if (this.fitted) return;
-      this.fitted = true;
-      this.paint();
-      /* Un solo fit, a simulazione ferma: rifarlo mentre il layout si espande
-         lascia la camera troppo lontana e il grafo minuscolo. */
-      this.fit(700);
+    /* ── replay temporale: la wiki cresce pagina per pagina ── */
+    renderTimeline() {
+      const host = $("#sm-timeline");
+      if (!this.sm || !this.sm.dates.length) { host.hidden = true; return; }
+      host.hidden = false;
+      const dates = this.sm.dates;
+
+      host.innerHTML = "";
+      const play = el("button", {
+        class: "sm-play", title: "Riproduci la crescita della wiki",
+        html: "&#9654;",
+      });
+      const range = el("input", {
+        type: "range", min: "0", max: String(dates.length - 1),
+        value: String(dates.length - 1), class: "sm-range",
+      });
+      const label = el("span", { class: "sm-date", text: "ora" });
+
+      const apply = () => {
+        const i = +range.value;
+        const cutoff = dates[i];
+        const last = i >= dates.length - 1;
+        label.textContent = last ? "ora" : cutoff;
+        this.sm.setFilter((n) => last || (n.created && n.created <= cutoff));
+        const shown = this.sm.nodes.filter((n) => n.alive).length;
+        label.title = plural(shown, "pagina", "pagine");
+      };
+
+      range.addEventListener("input", () => { this.stopPlay(); apply(); });
+
+      play.addEventListener("click", () => {
+        if (this._timer) return this.stopPlay();
+        if (+range.value >= dates.length - 1) range.value = "0";
+        apply();
+        play.innerHTML = "&#10073;&#10073;";
+        this._timer = setInterval(() => {
+          const next = +range.value + 1;
+          if (next >= dates.length) { this.stopPlay(); return; }
+          range.value = String(next);
+          apply();
+        }, 420);
+      });
+
+      this._play = play;
+      this._range = range;
+      host.appendChild(play);
+      host.appendChild(range);
+      host.appendChild(label);
     },
 
-    fit(ms) {
-      const host = $("#graph-canvas");
-      if (host.clientWidth) this.fg.width(host.clientWidth).height(host.clientHeight);
-      this.fg.zoomToFit(ms || 600, 55, (n) => this.isVisible(n));
-      this.idleAt = Date.now();
+    stopPlay() {
+      if (this._timer) clearInterval(this._timer);
+      this._timer = null;
+      if (this._play) this._play.innerHTML = "&#9654;";
     },
 
-    toggle2d() {
-      this.is2d = !this.is2d;
-      this.fitted = false;
-      this.fg.numDimensions(this.is2d ? 2 : 3);
-      this.applyCameraMode();
+    /* ── controlli ── */
+    fit() { if (this.sm) this.sm.fit(); },
 
-      const btn = $('[data-action="mode2d"]');
-      btn.classList.toggle("is-on", this.is2d);
-      btn.textContent = this.is2d ? "3D" : "2D";
-      $("#graph-hint").innerHTML = this.is2d
-        ? "trascina per spostare · rotella per zoomare<br>clic su un nodo per aprirlo"
-        : "trascina per ruotare · rotella per zoomare<br>clic su un nodo per aprirlo";
-
-      // Il fit va fatto a layout fermo: con numDimensions cambiate la
-      // simulazione riparte, e inquadrare a meta' corsa lascia il grafo
-      // fuori campo.
-      this.fg.d3ReheatSimulation();
-      setTimeout(() => this.settle(), 2600);
-
-      toast(this.is2d ? "Vista 2D — trascina per spostare" : "Vista 3D");
-    },
-
-    /* In 2D il grafo e' un piano z=0: se la camera orbita lo inquadra di taglio
-       e il grafo si riduce a una riga, fino a sparire. Quindi in 2D si fa pan e
-       zoom, mai rotazione — ne' col mouse ne' con la rotazione automatica. */
-    applyCameraMode() {
-      const controls = this.fg.controls();
-      if (!controls) return;
-
-      // Sono TrackballControls (default di 3d-force-graph), non OrbitControls:
-      // le proprieta' sono noRotate/noPan/staticMoving, non enableRotate.
-      if (this.is2d) {
-        controls.noRotate = true;
-        // Senza staticMoving il pan continua ad applicarsi con smorzamento per
-        // decine di frame dopo il rilascio, e un trascinamento breve manda il
-        // grafo fuori campo.
-        controls.staticMoving = true;
-        controls.panSpeed = 0.2;   // calibrato 1:1 col cursore
-        controls.mouseButtons = {
-          LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN,
-        };
-        controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
-        this.faceOn();
-      } else {
-        controls.noRotate = false;
-        controls.staticMoving = false;
-        controls.dynamicDampingFactor = 0.2;
-        controls.panSpeed = 0.3;
-        controls.mouseButtons = {
-          LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN,
-        };
-        controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-      }
-    },
-
-    /* Riporta la camera sull'asse z, perpendicolare al piano del grafo. */
-    faceOn() {
-      const cam = this.fg.cameraPosition();
-      const dist = Math.hypot(cam.x, cam.y, cam.z) || 400;
-      const c = this.centroid();
-      this.fg.cameraPosition({ x: c.x, y: c.y, z: c.z + dist }, c, 500);
-    },
-
-    centroid() {
-      const now = Date.now();
-      if (this._cen && now - this._cenAt < 500) return this._cen;
-      const nodes = this.fg.graphData().nodes.filter((n) => n.x != null && this.isVisible(n));
-      if (!nodes.length) return { x: 0, y: 0, z: 0 };
-      const sum = nodes.reduce((a, n) => ({
-        x: a.x + n.x, y: a.y + (n.y || 0), z: a.z + (n.z || 0),
-      }), { x: 0, y: 0, z: 0 });
-      this._cen = { x: sum.x / nodes.length, y: sum.y / nodes.length, z: sum.z / nodes.length };
-      this._cenAt = now;
-      return this._cen;
+    nextShape() {
+      if (!this.sm) return;
+      const s = this.sm.nextShape();
+      const btn = $('[data-action="shape"]');
+      btn.textContent = s === "natural" ? "Forma" : s;
+      btn.classList.toggle("is-on", s !== "natural");
+      toast("Forma: " + s);
     },
 
     toggleLabels() {
-      this.labelsAlways = !this.labelsAlways;
-      store.set("labelsAlways", this.labelsAlways);
-      $('[data-action="labels"]').classList.toggle("is-on", this.labelsAlways);
-      this.paint();
+      if (!this.sm) return;
+      this.labels = !this.labels;
+      store.set("labels", this.labels);
+      this.sm.set("names", this.labels ? 1 : 0);
+      $('[data-action="labels"]').classList.toggle("is-on", this.labels);
     },
 
-    toggleFocus() {
-      this.focusMode = !this.focusMode;
-      store.set("focusMode", this.focusMode);
-      $('[data-action="dim"]').classList.toggle("is-on", this.focusMode);
-      this.fg.nodeVisibility(this.fg.nodeVisibility())
-             .linkVisibility(this.fg.linkVisibility());
-      toast(this.focusMode ? "Focus: isola il vicinato" : "Focus disattivato");
+    toggleFlight() {
+      if (!this.sm) return;
+      const on = this.sm.setFlight(!this.sm.flight.on);
+      $('[data-action="flight"]').classList.toggle("is-on", on);
+      this.hint();
+      toast(on ? "Volo — W/A/S/D, Shift accelera, Esc atterra" : "Atterrato");
     },
 
-    pause() { if (this.fg) this.fg.pauseAnimation(); },
-    resume() { if (this.fg) { this.fg.resumeAnimation(); this.idleAt = Date.now(); } },
+    toggleZen() {
+      this.zen = !this.zen;
+      $("#app").classList.toggle("zen", this.zen);
+      $('[data-action="zen"]').classList.toggle("is-on", this.zen);
+      setTimeout(() => this.sm && this.sm._resize(), 240);
+    },
+
+    select(slug) { if (this.sm) this.sm.selectSlug(slug); },
+
+    applyFilter() {
+      if (!this.sm) return;
+      this.sm.setFilter((n) => {
+        const p = S.bySlug.get(n.slug);
+        if (!p) return false;
+        if (S.hiddenCats.has(p.category)) return false;
+        if (S.tag && !p.tags.includes(S.tag)) return false;
+        return true;
+      });
+      this.renderLegend();
+    },
+
+    applyTheme() { /* il cielo ha una sua tavolozza: non segue il tema */ },
+
+    pause() { if (this.sm) this.sm.stop(); },
+    resume() { if (this.sm) { this.sm._resize(); this.sm.start(); } },
 
     bind() {
-      const canvas = $("#graph-canvas");
-      ["mousedown", "wheel", "touchstart"].forEach((ev) =>
-        canvas.addEventListener(ev, () => { this.idleAt = Date.now(); }, { passive: true }));
-      $('[data-action="labels"]').classList.toggle("is-on", this.labelsAlways);
-      $('[data-action="dim"]').classList.toggle("is-on", this.focusMode);
-      window.addEventListener("resize", debounce(() => {
-        const host = $("#graph-canvas");
-        if (host.clientWidth) this.fg.width(host.clientWidth).height(host.clientHeight);
-      }, 200));
-    },
-
-    /* Rotazione lenta quando l'utente è fermo: dà volume alla scena senza
-       rubare il controllo appena tocca qualcosa.
-
-       Solo in 3D — in 2D porterebbe il piano di taglio. E orbita attorno al
-       centroide conservando quota e distanza: attorno all'origine, una camera
-       spostata dall'utente veniva riportata di forza sull'equatore. */
-    loop() {
-      const IDLE = 9000, SPEED = 0.00045;
-      const tick = () => {
-        requestAnimationFrame(tick);
-        if (!this.ready || this.is2d || S.view !== "graph" || this.selected) return;
-        if (Date.now() - this.idleAt < IDLE) return;
-
-        const c = this.centroid();
-        const cam = this.fg.cameraPosition();
-        const dx = cam.x - c.x, dz = cam.z - c.z;
-        const r = Math.hypot(dx, dz);
-        if (r < 1) return;
-
-        const angle = Math.atan2(dx, dz) + SPEED * (300 / Math.max(r, 60));
-        this.fg.cameraPosition({
-          x: c.x + r * Math.sin(angle),
-          y: cam.y,
-          z: c.z + r * Math.cos(angle),
-        }, c);
-      };
-      requestAnimationFrame(tick);
+      $('[data-action="labels"]').classList.toggle("is-on", this.labels);
+      document.addEventListener("keydown", (e) => {
+        if (!this.sm || !this.sm.flight.on) return;
+        this.sm.key(e.key === "Shift" ? "shift" : e.key, true);
+      });
+      document.addEventListener("keyup", (e) => {
+        if (!this.sm) return;
+        this.sm.key(e.key === "Shift" ? "shift" : e.key, false);
+      });
     },
   };
 
@@ -1605,11 +1225,12 @@
     ["Panoramica", ["O"]],
     ["Attività", ["A"]],
     ["Salute", ["H"]],
-    ["Grafo", null],
+    ["Mappa stellare", null],
     ["Inquadra tutto", ["0"]],
-    ["Vista 2D / 3D", ["D"]],
-    ["Etichette sempre visibili", ["L"]],
-    ["Focus sul vicinato", ["F"]],
+    ["Cambia forma della galassia", ["M"]],
+    ["Nomi delle pagine", ["L"]],
+    ["Volo", ["W"]],
+    ["Modalità zen", ["Z"]],
   ];
 
   const Shortcuts = {
@@ -1637,18 +1258,16 @@
         case "theme": Theme.toggle(); break;
         case "toggle-sidebar": {
           $("#app").classList.toggle("sidebar-hidden");
-          setTimeout(() => {
-            const host = $("#graph-canvas");
-            if (Graph.fg && host.clientWidth) Graph.fg.width(host.clientWidth).height(host.clientHeight);
-          }, 230);
+          setTimeout(() => Graph.sm && Graph.sm._resize(), 230);
           break;
         }
         case "help": $("#help").hidden = false; break;
         case "help-close": $("#help").hidden = true; break;
         case "fit": Graph.fit(); break;
-        case "mode2d": Graph.toggle2d(); break;
+        case "shape": Graph.nextShape(); break;
         case "labels": Graph.toggleLabels(); break;
-        case "dim": Graph.toggleFocus(); break;
+        case "flight": Graph.toggleFlight(); break;
+        case "zen": Graph.toggleZen(); break;
       }
     },
 
@@ -1662,6 +1281,8 @@
       if (Palette.open || typing) return;
 
       if (e.key === "Escape") {
+        if (Graph.sm && Graph.sm.flight.on) return Graph.toggleFlight();
+        if (Graph.zen) return Graph.toggleZen();
         if (!$("#help").hidden) return this.action("help-close");
         if (S.view === "page") return Router.back();
         return Router.view("graph");
@@ -1678,9 +1299,10 @@
         t: () => Theme.toggle(),
         s: () => this.action("toggle-sidebar"),
         "0": () => { Router.view("graph"); setTimeout(() => Graph.fit(), 60); },
-        d: () => { Router.view("graph"); Graph.toggle2d(); },
+        m: () => { Router.view("graph"); Graph.nextShape(); },
         l: () => Graph.toggleLabels(),
-        f: () => Graph.toggleFocus(),
+        w: () => { Router.view("graph"); Graph.toggleFlight(); },
+        z: () => { Router.view("graph"); Graph.toggleZen(); },
       };
       const fn = map[e.key.toLowerCase()];
       if (fn) { e.preventDefault(); fn(); }

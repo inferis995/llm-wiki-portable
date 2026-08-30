@@ -49,7 +49,7 @@ del modello.
 ## Features
 
 - **L'agente non dimentica** — hook e plugin, non solo istruzioni in prosa
-- **Grafo 3D** — nodi illuminati, vicinato in evidenza, 2D/3D, filtri per categoria e tag
+- **Mappa stellare** — le pagine sono stelle, le cartelle costellazioni, i wikilink fili di luce
 - **Quattro viste** — grafo, pagina con backlink, panoramica, timeline delle attività
 - **Command palette** — `⌘K` per cercare pagine, tag e azioni
 - **Portatile davvero** — la wiki si ritrova anche se la chiavetta cambia lettera
@@ -226,14 +226,26 @@ sei mesi sapere *perché* qualcosa è cambiato vale quanto il fatto stesso.
 
 Quattro viste sulla stessa knowledge base, in un'app statica senza build step.
 
-### Grafo 3D
+### Mappa stellare
 
-Nodi illuminati (materiali PBR, non cerchi piatti), dimensione proporzionale alle
-connessioni, link curvi. Passando sul nodo: **il vicinato si accende e il resto
-si spegne**, con una scheda che mostra estratto, link, backlink e lunghezza.
+La wiki come galassia: **ogni pagina è una stella** col suo titolo, ogni cartella
+una costellazione con la sua nebulosa e il suo nome su un anello orbitale
+inclinato, ogni `[[wikilink]]` un filo di luce. Le pagine aggiornate negli ultimi
+giorni pulsano come supernove.
 
-Controlli: **Focus** isola il vicinato · **Etichette** le mostra tutte ·
-**2D/3D** · **Inquadra**. Clic sulla legenda per mostrare/nascondere una categoria.
+Passando sul mouse: la stella si accende, i suoi vicini restano illuminati, il
+resto si spegne, e una scheda mostra estratto, link, backlink e lunghezza. Un
+clic apre la pagina.
+
+Controlli: **Forma** cambia la silhouette della galassia (spirale, disco, anello,
+guscio, elica, toro, isole, cubo) · **Nomi** i titoli delle pagine · **Volo**
+attraversa la galassia con W/A/S/D · **Zen** lascia solo il cielo ·
+**Inquadra**. Clic sulla legenda per isolare una costellazione.
+
+La **timeline** in basso riavvolge il tempo: trascina e guarda la wiki crescere
+pagina per pagina dalla prima nota, oppure premi play.
+
+Canvas 2D, nessuna libreria: l'intera dashboard sta in ~200 KB e gira offline.
 
 ### Pagina
 
@@ -273,7 +285,7 @@ evidenziazione.
 |---|---|
 | `⌘K` cerca ed esegui | `?` scorciatoie |
 | `g` grafo · `o` panoramica · `a` attività · `h` salute | `t` tema chiaro/scuro |
-| `0` inquadra · `d` 2D/3D · `l` etichette · `f` focus | `s` sidebar · `Esc` indietro |
+| `0` inquadra · `m` forma · `l` nomi | `w` volo · `z` zen · `s` sidebar · `Esc` indietro |
 
 Tema chiaro e scuro (segue il sistema, si può forzare), responsive fino al
 mobile, e stampa pulita della pagina aperta.
@@ -312,9 +324,15 @@ test di installazione in una HOME temporanea.
 ## Stack
 
 - **UI**: HTML/CSS/JS vanilla, nessun framework, nessun build step
-- **Grafo**: [3d-force-graph](https://github.com/vasturiano/3d-force-graph) + Three.js + D3
+- **Mappa stellare**: Canvas 2D scritto a mano, nessuna libreria grafica
 - **Markdown**: [marked.js](https://marked.js.org/)
 - **Tool**: Python 3.8+, zero dipendenze
+
+## Crediti
+
+La mappa stellare deriva da **[Fathom Starmap](https://github.com/dryweather-2544/fathom-starmap)**
+di Ariel Bowyer (MIT) — proiezione, fisica, nebulose, anelli delle costellazioni.
+Adattata qui a una wiki markdown statica. Dettagli in [THIRD-PARTY.md](THIRD-PARTY.md).
 
 ## Disinstallare
 

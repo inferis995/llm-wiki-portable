@@ -764,3 +764,73 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ============================================================
+   Mappa stellare
+   ============================================================ */
+
+.view--graph { background: #04060C; }
+
+.sm-canvas { position: absolute; inset: 0; cursor: grab; touch-action: none; display: block; }
+.sm-canvas.sm-drag { cursor: grabbing; }
+.sm-fail { position: absolute; inset: 0; display: grid; place-content: center; color: var(--tx-dim); font-size: var(--fs-sm); }
+
+/* Il cielo ha la sua tavolozza: legenda e overlay restano scuri in entrambi i temi */
+.view--graph .legend {
+  background: rgba(8, 12, 24, .82);
+  border-color: rgba(120, 140, 185, .22);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+.view--graph .legend__item { color: #93A3C2; }
+.view--graph .legend__item:hover { background: rgba(255, 255, 255, .06); color: #EAF1FC; }
+.view--graph .graph-hint { color: #55648A; }
+.view--graph .node-card {
+  background: rgba(8, 12, 24, .93);
+  border-color: rgba(120, 140, 185, .3);
+  color: #DCE6F7;
+}
+.view--graph .node-card__title { color: #F2F6FF; }
+.view--graph .node-card__excerpt { color: #A9B6D0; }
+.view--graph .node-card__meta { color: #6C7B99; border-top-color: rgba(120, 140, 185, .18); }
+
+/* Timeline del replay */
+.sm-timeline {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px;
+  z-index: 4;
+  display: flex; align-items: center; gap: 10px;
+  width: min(500px, 84%);
+  padding: 8px 12px;
+  background: rgba(8, 12, 24, .78);
+  border: 1px solid rgba(120, 140, 185, .22);
+  border-radius: 5px;
+  backdrop-filter: blur(14px);
+}
+.sm-timeline[hidden] { display: none; }
+.sm-play {
+  flex: none;
+  background: none;
+  border: 1px solid rgba(90, 200, 255, .4);
+  color: #6FD8FF;
+  font: 10px/1 var(--font-mono);
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.sm-play:hover { background: rgba(90, 200, 255, .12); }
+.sm-range { flex: 1; accent-color: #6FD8FF; cursor: pointer; height: 3px; }
+.sm-date {
+  flex: none; min-width: 82px; text-align: right;
+  font: 9px/1 var(--font-mono);
+  letter-spacing: .1em;
+  color: #8FA0C0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modalità zen: resta solo il cielo */
+.app.zen .sidebar,
+.app.zen .topbar,
+.app.zen .legend,
+.app.zen .graph-hint,
+.app.zen .sm-timeline,
+.app.zen .node-card { display: none !important; }
+.app.zen .stage { inset: 0; }

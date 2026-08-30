@@ -68,9 +68,10 @@
       <div class="topbar__spacer"></div>
 
       <div class="graph-tools" id="graph-tools">
-        <button class="chip" data-action="dim" title="Solo il vicinato del nodo attivo (f)">Focus</button>
-        <button class="chip" data-action="labels" title="Etichette sempre visibili (l)">Etichette</button>
-        <button class="chip" data-action="mode2d" title="Vista 2D / 3D (d)">2D</button>
+        <button class="chip" data-action="shape" title="Forma della galassia (m)">Forma</button>
+        <button class="chip" data-action="labels" title="Nomi delle pagine (l)">Nomi</button>
+        <button class="chip" data-action="flight" title="Volo (w)">Volo</button>
+        <button class="chip" data-action="zen" title="Modalità zen (z)">Zen</button>
         <button class="icon-btn" data-action="fit" title="Inquadra tutto (0)" aria-label="Inquadra tutto">
           <svg viewBox="0 0 20 20"><path d="M3 7V3h4M17 7V3h-4M3 13v4h4M17 13v4h-4"/></svg>
         </button>
@@ -88,6 +89,7 @@
         <div id="graph-legend" class="legend" aria-label="Categorie"></div>
         <div id="graph-hint" class="graph-hint"></div>
         <div id="node-card" class="node-card" hidden></div>
+        <div id="sm-timeline" class="sm-timeline" hidden></div>
       </section>
 
       <!-- Pagina -->
@@ -157,10 +159,8 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script src="lib/three.min.js"></script>
-<script src="lib/d3.min.js"></script>
-<script src="lib/3d-force-graph.min.js"></script>
 <script src="lib/marked.min.js"></script>
+<script src="starmap.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>
